@@ -63,4 +63,37 @@ describe('Mongo Config', () => {
 		const config = await getMongoConfig(configService)
 		expect(config.uri).toBe('mongodb://user:password@localhost:27017/dbname')
 	})
+
+	it('should use the correct Mongo protocol without protocol env', async () => {
+		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+			if (key === 'MONGO_PROTOCOL') {
+				return null
+			}
+			return 'value'
+		})
+		const config = await getMongoConfig(configService)
+		expect(config.uri.startsWith('mongodb://')).toBeTruthy()
+	})
+
+	it('should use the correct uri without port env', async () => {
+		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+			if (key === 'MONGO_PORT') {
+				return null
+			}
+			return 'value'
+		})
+		const config = await getMongoConfig(configService)
+		expect(config.uri).toBe('value://value:value@value:27017/value')
+	})
+
+	it('should use the correct uri without host and port env', async () => {
+		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
+			if (key === 'MONGO_HOST' || key === 'MONGO_PORT') {
+				return null
+			}
+			return 'value'
+		})
+		const config = await getMongoConfig(configService)
+		expect(config.uri).toBe('value://value:value@127.0.0.1:27017/value')
+	})
 })
