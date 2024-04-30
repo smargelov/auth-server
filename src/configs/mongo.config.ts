@@ -25,16 +25,22 @@ const getMongoHost = (configService: ConfigService): string => {
 	return '127.0.0.1:27017'
 }
 
-const getMongoUri = (configService: ConfigService): string =>
-	getMongoProtocol(configService) +
-	'://' +
-	configService.get('MONGO_APP_USER') +
-	':' +
-	configService.get('MONGO_APP_PASSWORD') +
-	'@' +
-	getMongoHost(configService) +
-	'/' +
-	configService.get('MONGO_NAME')
+const getMongoUri = (configService: ConfigService): string => {
+	if (!configService.get('MONGO_APP_USER') || !configService.get('MONGO_APP_PASSWORD')) {
+		throw new Error('Missing MONGO_APP_USER or MONGO_APP_PASSWORD')
+	}
+	return (
+		getMongoProtocol(configService) +
+			'://' +
+			configService.get('MONGO_APP_USER') +
+			':' +
+			configService.get('MONGO_APP_PASSWORD') +
+			'@' +
+			getMongoHost(configService) +
+			'/' +
+			configService.get('MONGO_NAME') || ''
+	)
+}
 
 const getMongoOptions = (): Record<string, unknown> => ({})
 
