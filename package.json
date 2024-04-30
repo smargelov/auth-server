@@ -76,8 +76,5 @@
 			"yarn lint",
 			"yarn format"
 		]
-	},
-	"test-staged": {
-		"*.{ts,js}": "yarn test"
 	}
 }
