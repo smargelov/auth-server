@@ -1,0 +1,17 @@
+meta {
+  name: update role
+  type: http
+  seq: 4
+}
+
+patch {
+  url: {{BASE_URL}}/roles/user
+  body: json
+  auth: none
+}
+
+body:json {
+  {
+    "description": "user description"
+  }
+}

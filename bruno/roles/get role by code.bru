@@ -1,0 +1,17 @@
+meta {
+  name: get role by code
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{BASE_URL}}/roles/admin
+  body: none
+  auth: none
+}
+
+body:json {
+  {
+    "code": "moderator"
+  }
+}

@@ -4,6 +4,8 @@ import { AppService } from './app.service'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { getMongoConfig } from './configs/mongo.config'
 import { TypegooseModule } from 'nestjs-typegoose'
+import { UserModule } from './user/user.module'
+import { RoleModule } from './role/role.module'
 
 @Module({
 	imports: [
@@ -12,7 +14,9 @@ import { TypegooseModule } from 'nestjs-typegoose'
 			imports: [ConfigModule],
 			inject: [ConfigService],
 			useFactory: getMongoConfig
-		})
+		}),
+		UserModule,
+		RoleModule
 	],
 	controllers: [AppController],
 	providers: [AppService]
