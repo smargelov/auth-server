@@ -1,6 +1,4 @@
 import { Module } from '@nestjs/common'
-import { AppController } from './app.controller'
-import { AppService } from './app.service'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { getMongoConfig } from './configs/mongo.config'
 import { TypegooseModule } from 'nestjs-typegoose'
@@ -17,8 +15,6 @@ import { RoleModule } from './role/role.module'
 		}),
 		UserModule,
 		RoleModule
-	],
-	controllers: [AppController],
-	providers: [AppService]
+	]
 })
 export class AppModule {}

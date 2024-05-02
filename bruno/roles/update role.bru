@@ -1,17 +1,17 @@
 meta {
   name: update role
   type: http
-  seq: 4
+  seq: 5
 }
 
 patch {
-  url: {{BASE_URL}}/roles/user
+  url: {{BASE_URL}}/roles/test
   body: json
   auth: none
 }
 
 body:json {
   {
-    "description": "user description"
+    "description": "Test description"
   }
 }
