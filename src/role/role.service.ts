@@ -1,31 +1,60 @@
-import { Injectable } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { RoleModel } from './role.model'
 import { DocumentType, ModelType } from '@typegoose/typegoose/lib/types'
 import { InjectModel } from 'nestjs-typegoose'
 import { CreateRoleDto } from './dto/create-role.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
+import { ROLE_ALREADY_EXISTS, ROLE_DELETED_MESSAGE, ROLE_NOT_FOUND } from './role.constants'
 
 @Injectable()
 export class RoleService {
 	constructor(@InjectModel(RoleModel) private readonly roleModel: ModelType<RoleModel>) {}
 
-	async create(dto: CreateRoleDto): Promise<DocumentType<RoleModel>> {
-		return this.roleModel.create(dto)
+	async roleExists(code: CreateRoleDto['code']): Promise<boolean> {
+		const role = await this.roleModel.findOne({ code }).exec()
+		return !!role
 	}
 
-	async findByCode(code: string): Promise<DocumentType<RoleModel> | null> {
-		return this.roleModel.findOne({ code }).exec()
+	async create(dto: CreateRoleDto): Promise<DocumentType<RoleModel> | HttpException> {
+		const roleExists = await this.roleExists(dto.code)
+		if (roleExists) {
+			throw new HttpException(ROLE_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
+		}
+		return this.roleModel.create(dto)
 	}
 
 	async list(): Promise<DocumentType<RoleModel>[]> {
 		return this.roleModel.find().exec()
 	}
 
-	async deleteByCode(code: string): Promise<DocumentType<RoleModel> | null> {
-		return this.roleModel.findOneAndDelete({ code }).exec()
+	async findByCode(
+		code: CreateRoleDto['code']
+	): Promise<DocumentType<RoleModel> | HttpException> {
+		const role = await this.roleModel.findOne({ code }).exec()
+		if (!role) {
+			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		return role
 	}
 
-	async updateByCode(code: string, dto: UpdateRoleDto): Promise<DocumentType<RoleModel>> {
-		return this.roleModel.findOneAndUpdate({ code }, dto, { new: true }).exec()
+	async deleteByCode(code: CreateRoleDto['code']): Promise<{ message: string } | HttpException> {
+		const deletedRole = await this.roleModel.findOneAndDelete({ code }).exec()
+		if (!deletedRole) {
+			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		return { message: ROLE_DELETED_MESSAGE }
+	}
+
+	async updateByCode(
+		code: CreateRoleDto['code'],
+		dto: UpdateRoleDto
+	): Promise<DocumentType<RoleModel> | HttpException> {
+		const updatedRole = await this.roleModel
+			.findOneAndUpdate({ code }, dto, { new: true })
+			.exec()
+		if (!updatedRole) {
+			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		return updatedRole
 	}
 }

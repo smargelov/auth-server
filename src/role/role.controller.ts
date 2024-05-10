@@ -3,8 +3,6 @@ import {
 	Controller,
 	Delete,
 	Get,
-	HttpException,
-	HttpStatus,
 	Param,
 	Patch,
 	Post,
@@ -14,7 +12,6 @@ import {
 } from '@nestjs/common'
 import { RoleService } from './role.service'
 import { CreateRoleDto } from './dto/create-role.dto'
-import { ROLE_ALREADY_EXISTS, ROLE_DELETED_MESSAGE, ROLE_NOT_FOUND } from './role.constants'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 
@@ -26,10 +23,6 @@ export class RoleController {
 
 	@Post()
 	async create(@Body() createRoleDto: CreateRoleDto) {
-		const candidate = await this.roleService.findByCode(createRoleDto.code)
-		if (candidate) {
-			throw new HttpException(ROLE_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
-		}
 		return this.roleService.create(createRoleDto)
 	}
 
@@ -40,28 +33,16 @@ export class RoleController {
 
 	@Get(':code')
 	async getByCode(@Param('code') code: CreateRoleDto['code']) {
-		const searchedRole = await this.roleService.findByCode(code)
-		if (!searchedRole) {
-			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
-		}
-		return searchedRole
+		return await this.roleService.findByCode(code)
 	}
 
 	@Delete(':code')
 	async delete(@Param('code') code: CreateRoleDto['code']) {
-		const deletedRole = await this.roleService.deleteByCode(code)
-		if (!deletedRole) {
-			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
-		}
-		return { message: ROLE_DELETED_MESSAGE }
+		return await this.roleService.deleteByCode(code)
 	}
 
 	@Patch(':code')
 	async update(@Param('code') code: CreateRoleDto['code'], @Body() dto: UpdateRoleDto) {
-		const updatedRole = await this.roleService.updateByCode(code, dto)
-		if (!updatedRole) {
-			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
-		}
-		return updatedRole
+		return await this.roleService.updateByCode(code, dto)
 	}
 }
