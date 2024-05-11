@@ -1,7 +1,8 @@
 import { IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator'
 import { ROLE_CODE_ALLOWED } from '../role.constants'
+import { RoleDto } from './role.dto'
 
-export class UpdateRoleDto {
+export class UpdateRoleDto extends RoleDto {
 	@IsString()
 	@IsNotEmpty()
 	@Matches(/^[a-z]+$/, {
@@ -9,8 +10,4 @@ export class UpdateRoleDto {
 	})
 	@IsOptional()
 	code?: string
-
-	@IsString()
-	@IsOptional()
-	description?: string
 }

@@ -9,4 +9,7 @@ export class RoleModel extends TimeStamps {
 
 	@prop()
 	description?: string
+
+	@prop({ default: false })
+	isDefault: boolean
 }

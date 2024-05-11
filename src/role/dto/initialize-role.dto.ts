@@ -1,8 +1,8 @@
-import { IsBoolean, IsNotEmpty, IsOptional, IsString, Matches } from 'class-validator'
+import { IsBoolean, IsNotEmpty, IsString, Matches } from 'class-validator'
 import { ROLE_CODE_ALLOWED } from '../role.constants'
 import { RoleDto } from './role.dto'
 
-export class CreateRoleDto extends RoleDto {
+export class InitializeRoleDto extends RoleDto {
 	@IsString()
 	@IsNotEmpty()
 	@Matches(/^[a-z]+$/, {
@@ -11,6 +11,5 @@ export class CreateRoleDto extends RoleDto {
 	code: string
 
 	@IsBoolean()
-	@IsOptional()
-	isDefault: boolean = false
+	isDefault: boolean = true
 }
