@@ -5,10 +5,12 @@ import { UserModel } from './user.model'
 import { TypegooseModule } from 'nestjs-typegoose'
 import { RoleModule } from '../role/role.module'
 import { PasswordService } from './password.service'
+import { ConfigModule } from '@nestjs/config'
 
 @Module({
 	imports: [
 		RoleModule,
+		ConfigModule,
 		TypegooseModule.forFeature([
 			{
 				typegooseClass: UserModel,
@@ -19,6 +21,7 @@ import { PasswordService } from './password.service'
 		])
 	],
 	controllers: [UserController],
-	providers: [UserService, PasswordService]
+	providers: [UserService, PasswordService],
+	exports: [UserService]
 })
 export class UserModule {}

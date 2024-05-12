@@ -1,4 +1,3 @@
-export const USER_ROLE_SHOULD_BE_ONE_OF = 'Field role should be one of: admin, user, moderator'
 export const USER_ALREADY_EXISTS = 'User with this email already exists'
 export const USER_NOT_FOUND = 'User not found'
 export const USER_DELETED_MESSAGE = 'User deleted'

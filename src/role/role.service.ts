@@ -31,13 +31,13 @@ export class RoleService {
 		return this.roleModel.create(dto)
 	}
 
-	async initialize(dto: InitializeRoleDto): Promise<DocumentType<RoleModel> | HttpException> {
+	async initialize(dto: InitializeRoleDto): Promise<boolean> {
 		const roleExists = await this.roleExists(dto.code)
 		if (roleExists) {
 			console.log(`Role with code ${dto.code} already exists`)
-			return
+			return true
 		}
-		return this.roleModel.create(dto)
+		return !!this.roleModel.create(dto)
 	}
 
 	async list(): Promise<DocumentType<RoleModel>[]> {

@@ -9,3 +9,11 @@ get {
   body: json
   auth: none
 }
+
+query {
+  ~limit: 2
+  ~offset: 2
+  ~isActive: true
+  ~role: user
+  ~search: test1
+}

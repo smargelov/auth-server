@@ -3,6 +3,7 @@ import {
 	Controller,
 	Delete,
 	Get,
+	HttpException,
 	Param,
 	Patch,
 	Post,
@@ -11,12 +12,15 @@ import {
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
+import type { DocumentType } from '@typegoose/typegoose/lib/types'
+
 import { UserService } from './user.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { UpdateUserDto } from './dto/update-user.dto'
+import { FindUserDto } from './dto/find-user.dto'
 import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 import { HidePasswordInterceptor } from '../common/interceptors/hide-password.interceptor'
-import { FindUserDto } from './dto/find-user.dto'
+import { UserModel } from './user.model'
 
 @UsePipes(new ValidationPipe())
 @UseInterceptors(CleanResponseInterceptor)
@@ -26,7 +30,9 @@ export class UserController {
 	constructor(private readonly userService: UserService) {}
 
 	@Post()
-	async create(@Body() createUserDto: CreateUserDto) {
+	async create(
+		@Body() createUserDto: CreateUserDto
+	): Promise<DocumentType<UserModel> | HttpException> {
 		return this.userService.create(createUserDto)
 	}
 

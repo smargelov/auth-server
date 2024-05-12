@@ -1,9 +1,15 @@
-import { DocumentType, ModelType } from '@typegoose/typegoose/lib/types'
-import { InjectModel } from 'nestjs-typegoose'
-import { UserModel } from './user.model'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
-import { CreateUserDto } from './dto/create-user.dto'
+import type { DocumentType, ModelType } from '@typegoose/typegoose/lib/types'
+import { InjectModel } from 'nestjs-typegoose'
+import { FilterQuery } from 'mongoose'
 import { RoleService } from '../role/role.service'
+import { UserModel } from './user.model'
+import { PasswordService } from './password.service'
+import { CreateUserDto } from './dto/create-user.dto'
+import { UpdateUserDto } from './dto/update-user.dto'
+import { FindUserDto } from './dto/find-user.dto'
+import { FullListResponse } from '../common/responses/full-list.response'
+import { ROLE_NOT_FOUND } from '../role/role.constants'
 import {
 	FAILED_TO_CREATE_USER,
 	FAILED_TO_UPDATE_USER,
@@ -11,19 +17,15 @@ import {
 	USER_DELETED_MESSAGE,
 	USER_NOT_FOUND
 } from './user.constants'
-import { ROLE_NOT_FOUND } from '../role/role.constants'
-import { UpdateUserDto } from './dto/update-user.dto'
-import { PasswordService } from './password.service'
-import { FindUserDto } from './dto/find-user.dto'
-import { FullListResponse } from '../common/responses/full-list.response'
-import { FilterQuery } from 'mongoose'
+import { ConfigService } from '@nestjs/config'
 
 @Injectable()
 export class UserService {
 	constructor(
 		@InjectModel(UserModel) private readonly userModel: ModelType<UserModel>,
 		private readonly roleService: RoleService,
-		private readonly passwordService: PasswordService
+		private readonly passwordService: PasswordService,
+		private readonly configService: ConfigService
 	) {}
 
 	private async userExists(email: CreateUserDto['email']): Promise<boolean> {
@@ -48,8 +50,32 @@ export class UserService {
 		return !!roleExists
 	}
 
+	async initialize(dto: CreateUserDto): Promise<boolean> {
+		const userExists = await this.userExists(dto.email)
+		if (userExists) {
+			console.log(`User with email ${dto.email} already exists`)
+			return true
+		}
+		const adminUserExist = await this.find({ role: dto.role, limit: 1, offset: 0 })
+		if (adminUserExist.items.length) {
+			console.log(`User with role ${dto.role} already exists`)
+			return true
+		}
+		const user = await this.getUserWithPasswordHash(dto)
+		const createdUser = await this.userModel.create(user)
+		if (!createdUser) {
+			console.log(`Failed to create user with email ${dto.email}`)
+			return false
+		}
+		return !!createdUser
+	}
+
 	async create(dto: CreateUserDto): Promise<DocumentType<UserModel> | HttpException> {
-		await this.checkRoleExists(dto.role)
+		if (!dto.role) {
+			dto.role = this.configService.get('roles.user')
+		} else {
+			await this.checkRoleExists(dto.role)
+		}
 		const userExists = await this.userExists(dto.email)
 		if (userExists) {
 			throw new HttpException(USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)

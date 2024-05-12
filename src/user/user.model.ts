@@ -6,7 +6,7 @@ export class UserModel extends TimeStamps {
 	@prop({ required: true, unique: true })
 	email: string
 
-	@prop({ required: true, default: 'user' })
+	@prop({ required: true })
 	role: string
 
 	@prop({ required: true, default: false })

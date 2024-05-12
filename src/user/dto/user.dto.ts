@@ -14,7 +14,7 @@ export abstract class UserDto {
 
 	@IsOptional()
 	@IsString()
-	role?: string = 'user'
+	role?: string
 
 	@IsOptional()
 	@IsBoolean()

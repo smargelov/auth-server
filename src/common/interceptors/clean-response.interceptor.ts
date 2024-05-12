@@ -11,7 +11,7 @@ interface MongooseDocument {
 	toObject: () => object
 }
 
-type CleanResponse<T extends object> = Omit<
+export type CleanResponse<T extends object> = Omit<
 	T & ExtendedBase & TimeStamps,
 	'_id' | '__v' | 'createdAt' | 'updatedAt'
 >
