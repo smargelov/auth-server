@@ -1,4 +1,4 @@
-import { IsOptional, IsString } from 'class-validator'
+import { IsBoolean, IsOptional, IsString } from 'class-validator'
 import { PasswordValidationRequirement } from 'class-validator-password-check'
 
 export const passwordRequirement: PasswordValidationRequirement = {
@@ -15,4 +15,8 @@ export abstract class UserDto {
 	@IsOptional()
 	@IsString()
 	role?: string = 'user'
+
+	@IsOptional()
+	@IsBoolean()
+	isActive?: boolean = false
 }

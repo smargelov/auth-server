@@ -6,15 +6,17 @@ import {
 	Param,
 	Patch,
 	Post,
+	Query,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
 import { UserService } from './user.service'
 import { CreateUserDto } from './dto/create-user.dto'
-import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 import { UpdateUserDto } from './dto/update-user.dto'
+import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 import { HidePasswordInterceptor } from '../common/interceptors/hide-password.interceptor'
+import { FindUserDto } from './dto/find-user.dto'
 
 @UsePipes(new ValidationPipe())
 @UseInterceptors(CleanResponseInterceptor)
@@ -29,12 +31,15 @@ export class UserController {
 	}
 
 	@Get()
-	async list() {
-		return this.userService.list()
+	async find(
+		@Query(new ValidationPipe({ transform: true }))
+		query: FindUserDto
+	) {
+		return this.userService.find(query)
 	}
 
 	@Get(':email')
-	async getByEmail(@Param('email') email: CreateUserDto['email']) {
+	async getOne(@Param('email') email: CreateUserDto['email']) {
 		return await this.userService.findUserByEmail(email)
 	}
 

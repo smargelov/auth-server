@@ -14,6 +14,9 @@ import {
 import { ROLE_NOT_FOUND } from '../role/role.constants'
 import { UpdateUserDto } from './dto/update-user.dto'
 import { PasswordService } from './password.service'
+import { FindUserDto } from './dto/find-user.dto'
+import { FullListResponse } from '../common/responses/full-list.response'
+import { FilterQuery } from 'mongoose'
 
 @Injectable()
 export class UserService {
@@ -69,8 +72,18 @@ export class UserService {
 		return user
 	}
 
-	async list(): Promise<DocumentType<UserModel>[]> {
-		return this.userModel.find().exec()
+	async find(dto: FindUserDto): Promise<FullListResponse<DocumentType<UserModel>>> {
+		const { limit, offset, search, ...otherQueryParams } = dto
+		let query: FilterQuery<DocumentType<UserModel>> = { ...otherQueryParams }
+
+		// Если параметр search предоставлен, добавляем условия для полнотекстового поиска
+		if (search) {
+			query = { ...query, $text: { $search: search } }
+		}
+
+		const total = await this.userModel.countDocuments(query).exec()
+		const items = total ? await this.userModel.find(query).skip(offset).limit(limit).exec() : []
+		return { items, meta: { total, limit, offset } }
 	}
 
 	async deleteByEmail(
