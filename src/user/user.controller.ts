@@ -14,9 +14,11 @@ import { UserService } from './user.service'
 import { CreateUserDto } from './dto/create-user.dto'
 import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 import { UpdateUserDto } from './dto/update-user.dto'
+import { HidePasswordInterceptor } from '../common/interceptors/hide-password.interceptor'
 
 @UsePipes(new ValidationPipe())
 @UseInterceptors(CleanResponseInterceptor)
+@UseInterceptors(HidePasswordInterceptor)
 @Controller('users')
 export class UserController {
 	constructor(private readonly userService: UserService) {}
