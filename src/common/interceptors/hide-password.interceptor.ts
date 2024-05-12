@@ -14,14 +14,25 @@ export class HidePasswordInterceptor<T extends { passwordHash?: string }>
 	): Observable<SingleOrArray<Omit<T, 'passwordHash'>>> {
 		return next.handle().pipe(
 			map((data) => {
-				if (Array.isArray(data)) {
-					return data.map((item) => {
-						const { passwordHash, ...result } = item
+				switch (true) {
+					case Array.isArray(data):
+						return data.map((item: T) => {
+							const { passwordHash, ...result } = item
+							return result
+						})
+					case typeof data === 'object' && data.items && Array.isArray(data.items):
+						return {
+							...data,
+							items: data.items.map((item: T) => {
+								const { passwordHash, ...result } = item
+								return result
+							})
+						}
+					case typeof data === 'object':
+						const { passwordHash, ...result } = data
 						return result
-					})
-				} else {
-					const { passwordHash, ...result } = data
-					return result
+					default:
+						return data
 				}
 			})
 		)

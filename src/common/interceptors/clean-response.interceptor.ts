@@ -26,10 +26,19 @@ export class CleanResponseInterceptor<T extends object>
 	): Observable<T | CleanResponse<T> | (T | CleanResponse<T>)[]> {
 		return next.handle().pipe(
 			map((data) => {
-				if (Array.isArray(data)) {
-					return data.map((item) => this.clean(item))
+				switch (true) {
+					case Array.isArray(data):
+						return data.map((item: T) => this.clean(item))
+					case typeof data === 'object' && data.items && Array.isArray(data.items):
+						return {
+							...data,
+							items: data.items.map((item: T) => this.clean(item))
+						}
+					case typeof data === 'object':
+						return this.clean(data)
+					default:
+						return data
 				}
-				return this.clean(data)
 			})
 		)
 	}
