@@ -1,7 +1,7 @@
 import { index, prop } from '@typegoose/typegoose'
 import { TimeStamps } from '@typegoose/typegoose/lib/defaultClasses'
 
-@index({ email: 'text', fullName: 'text' })
+@index({ email: 'text', displayName: 'text' })
 export class UserModel extends TimeStamps {
 	@prop({ required: true, unique: true })
 	email: string

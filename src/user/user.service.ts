@@ -102,7 +102,10 @@ export class UserService {
 
 		// If the search parameter is provided, add conditions for full-text search
 		if (search) {
-			query = { ...query, $text: { $search: search } }
+			query = {
+				...query,
+				$or: [{ email: new RegExp(search, 'i') }, { displayName: new RegExp(search, 'i') }]
+			}
 		}
 
 		const total = await this.userModel.countDocuments(query).exec()
