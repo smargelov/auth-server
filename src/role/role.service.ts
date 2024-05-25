@@ -44,40 +44,37 @@ export class RoleService {
 		return this.roleModel.find().exec()
 	}
 
-	async findByCode(
-		code: CreateRoleDto['code']
-	): Promise<DocumentType<RoleModel> | HttpException> {
-		const role = await this.roleModel.findOne({ code }).exec()
+	async findById(id: string): Promise<DocumentType<RoleModel> | HttpException> {
+		const role = await this.roleModel.findById(id).exec()
 		if (!role) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
 		return role
 	}
 
-	async deleteByCode(code: CreateRoleDto['code']): Promise<{ message: string } | HttpException> {
-		const deletedRole = await this.roleModel.findOneAndDelete({ code }).exec()
-		if (!deletedRole) {
+	async deleteById(id: string): Promise<{ message: string } | HttpException> {
+		const candidate = await this.roleModel.findById(id).exec()
+		if (!candidate) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
-		if (deletedRole.isDefault) {
+		if (candidate.isDefault) {
 			throw new HttpException(DEFAULT_ROLE_CAN_NOT_BE_DELETED, HttpStatus.BAD_REQUEST)
 		}
+		await this.roleModel.findOneAndDelete({ _id: id }).exec()
 		return { message: ROLE_DELETED_MESSAGE }
 	}
 
-	async updateByCode(
-		code: CreateRoleDto['code'],
+	async updateById(
+		id: string,
 		dto: UpdateRoleDto
 	): Promise<DocumentType<RoleModel> | HttpException> {
-		const updatedRole = await this.roleModel
-			.findOneAndUpdate({ code }, dto, { new: true })
-			.exec()
-		if (!updatedRole) {
+		const candidate = await this.roleModel.findById(id).exec()
+		if (!candidate) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
-		if (updatedRole.isDefault) {
+		if (candidate.isDefault) {
 			throw new HttpException(DEFAULT_ROLE_CAN_NOT_BE_UPDATED, HttpStatus.BAD_REQUEST)
 		}
-		return updatedRole
+		return this.roleModel.findOneAndUpdate({ _id: id }, dto, { new: true }).exec()
 	}
 }

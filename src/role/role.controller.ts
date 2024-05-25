@@ -14,8 +14,10 @@ import { RoleService } from './role.service'
 import { CreateRoleDto } from './dto/create-role.dto'
 import { UpdateRoleDto } from './dto/update-role.dto'
 import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
+import { ValidateObjectIdPipe } from '../common/pipes/validate-object-id.pipe'
+import { ROLE_NOT_FOUND } from './role.constants'
 
-@UsePipes(new ValidationPipe())
+@UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(ROLE_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
 @Controller('roles')
 export class RoleController {
@@ -31,18 +33,18 @@ export class RoleController {
 		return this.roleService.list()
 	}
 
-	@Get(':code')
-	async getByCode(@Param('code') code: CreateRoleDto['code']) {
-		return await this.roleService.findByCode(code)
+	@Get(':id')
+	async getByCode(@Param('id') id: string) {
+		return await this.roleService.findById(id)
 	}
 
-	@Delete(':code')
-	async delete(@Param('code') code: CreateRoleDto['code']) {
-		return await this.roleService.deleteByCode(code)
+	@Delete(':id')
+	async delete(@Param('id') id: string) {
+		return await this.roleService.deleteById(id)
 	}
 
-	@Patch(':code')
-	async update(@Param('code') code: CreateRoleDto['code'], @Body() dto: UpdateRoleDto) {
-		return await this.roleService.updateByCode(code, dto)
+	@Patch(':id')
+	async update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
+		return await this.roleService.updateById(id, dto)
 	}
 }

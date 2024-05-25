@@ -88,10 +88,8 @@ export class UserService {
 		return createdUser
 	}
 
-	async findUserByEmail(
-		email: CreateUserDto['email']
-	): Promise<DocumentType<UserModel> | HttpException> {
-		const user = await this.userModel.findOne({ email }).exec()
+	async findUserById(id: string): Promise<DocumentType<UserModel> | HttpException> {
+		const user = await this.userModel.findOne({ _id: id }).exec()
 		if (!user) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
@@ -102,7 +100,7 @@ export class UserService {
 		const { limit, offset, search, ...otherQueryParams } = dto
 		let query: FilterQuery<DocumentType<UserModel>> = { ...otherQueryParams }
 
-		// Если параметр search предоставлен, добавляем условия для полнотекстового поиска
+		// If the search parameter is provided, add conditions for full-text search
 		if (search) {
 			query = { ...query, $text: { $search: search } }
 		}
@@ -112,18 +110,16 @@ export class UserService {
 		return { items, meta: { total, limit, offset } }
 	}
 
-	async deleteByEmail(
-		email: CreateUserDto['email']
-	): Promise<{ message: string } | HttpException> {
-		const deletedUser = await this.userModel.findOneAndDelete({ email }).exec()
+	async deleteById(id: string): Promise<{ message: string } | HttpException> {
+		const deletedUser = await this.userModel.findOneAndDelete({ _id: id }).exec()
 		if (!deletedUser) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
 		return { message: USER_DELETED_MESSAGE }
 	}
 
-	async updateByEmail(
-		email: CreateUserDto['email'],
+	async updateById(
+		id: string,
 		dto: UpdateUserDto
 	): Promise<DocumentType<UserModel> | HttpException> {
 		if (dto.role) {
@@ -131,7 +127,7 @@ export class UserService {
 		}
 		const user = await this.getUserWithPasswordHash(dto)
 		const updatedUser = await this.userModel
-			.findOneAndUpdate({ email }, user, { new: true })
+			.findOneAndUpdate({ _id: id }, user, { new: true })
 			.exec()
 		if (!updatedUser) {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)

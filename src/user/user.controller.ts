@@ -21,8 +21,10 @@ import { FindUserDto } from './dto/find-user.dto'
 import { CleanResponseInterceptor } from '../common/interceptors/clean-response.interceptor'
 import { HidePasswordInterceptor } from '../common/interceptors/hide-password.interceptor'
 import { UserModel } from './user.model'
+import { ValidateObjectIdPipe } from '../common/pipes/validate-object-id.pipe'
+import { USER_NOT_FOUND } from './user.constants'
 
-@UsePipes(new ValidationPipe())
+@UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(USER_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
 @UseInterceptors(HidePasswordInterceptor)
 @Controller('users')
@@ -44,18 +46,18 @@ export class UserController {
 		return this.userService.find(query)
 	}
 
-	@Get(':email')
-	async getOne(@Param('email') email: CreateUserDto['email']) {
-		return await this.userService.findUserByEmail(email)
+	@Get(':id')
+	async getOne(@Param('id') id: string) {
+		return await this.userService.findUserById(id)
 	}
 
-	@Delete(':email')
-	async delete(@Param('email') email: CreateUserDto['email']) {
-		return await this.userService.deleteByEmail(email)
+	@Delete(':id')
+	async delete(@Param('id') id: string) {
+		return await this.userService.deleteById(id)
 	}
 
-	@Patch(':email')
-	async update(@Param('email') email: CreateUserDto['email'], @Body() dto: UpdateUserDto) {
-		return await this.userService.updateByEmail(email, dto)
+	@Patch(':id')
+	async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
+		return await this.userService.updateById(id, dto)
 	}
 }

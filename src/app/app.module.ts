@@ -6,6 +6,8 @@ import { UserModule } from '../user/user.module'
 import { RoleModule } from '../role/role.module'
 import { AppInitializer } from './app.initializer'
 import configuration from '../configs/configuration'
+import { ExcludeIdInterceptor } from '../common/interceptors/exclude-id.interceptor'
+import { APP_INTERCEPTOR } from '@nestjs/core'
 
 @Module({
 	imports: [
@@ -20,6 +22,12 @@ import configuration from '../configs/configuration'
 		UserModule,
 		RoleModule
 	],
-	providers: [AppInitializer]
+	providers: [
+		{
+			provide: APP_INTERCEPTOR,
+			useClass: ExcludeIdInterceptor
+		},
+		AppInitializer
+	]
 })
 export class AppModule {}
