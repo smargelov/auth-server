@@ -13,6 +13,7 @@ import { ROLE_NOT_FOUND } from '../role/role.constants'
 import {
 	FAILED_TO_CREATE_USER,
 	FAILED_TO_UPDATE_USER,
+	FILED_PASSWORD_COMPARE,
 	USER_ALREADY_EXISTS,
 	USER_DELETED_MESSAGE,
 	USER_NOT_FOUND
@@ -48,6 +49,24 @@ export class UserService {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
 		return !!roleExists
+	}
+
+	async validateUser(
+		email: string,
+		password: string
+	): Promise<DocumentType<UserModel> | HttpException> {
+		const user = await this.userModel.findOne({ email }).exec()
+		if (!user) {
+			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		const isPasswordSuccess = await this.passwordService.comparePassword(
+			password,
+			user.passwordHash
+		)
+		if (!isPasswordSuccess) {
+			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.NOT_FOUND)
+		}
+		return user
 	}
 
 	async initialize(dto: CreateUserDto): Promise<boolean> {

@@ -8,6 +8,7 @@ import { AppInitializer } from './app.initializer'
 import configuration from '../configs/configuration'
 import { ExcludeIdInterceptor } from '../common/interceptors/exclude-id.interceptor'
 import { APP_INTERCEPTOR } from '@nestjs/core'
+import { AuthModule } from '../auth/auth.module'
 
 @Module({
 	imports: [
@@ -20,7 +21,8 @@ import { APP_INTERCEPTOR } from '@nestjs/core'
 			useFactory: getMongoConfig
 		}),
 		UserModule,
-		RoleModule
+		RoleModule,
+		AuthModule
 	],
 	providers: [
 		{
