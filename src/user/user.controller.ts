@@ -26,13 +26,14 @@ import { ValidateObjectIdPipe } from '../common/pipes/validate-object-id.pipe'
 import { USER_NOT_FOUND } from './user.constants'
 import { Roles } from '../common/decorators/roles.decorator'
 import { RoleGuard } from '../common/guards/role.guard'
+import { ActiveGuard } from '../common/guards/active.guard'
 
 @UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(USER_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
 @UseInterceptors(HidePasswordInterceptor)
 @Controller('users')
 @Roles('admin')
-@UseGuards(RoleGuard)
+@UseGuards(RoleGuard, ActiveGuard)
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 
