@@ -1,11 +1,14 @@
+import { JwtService, TokenExpiredError } from '@nestjs/jwt'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
+import { ConfigService } from '@nestjs/config'
 import type { DocumentType } from '@typegoose/typegoose/lib/types'
-import { JwtService } from '@nestjs/jwt'
 import { UserService } from '../user/user.service'
 import { LoginDto } from './dto/login.dto'
 import { TokensResponse } from './responses/tokens.response'
-import { ConfigService } from '@nestjs/config'
-import { AUTH_VALIDATE_ERROR_MESSAGE } from './auth.constants'
+import {
+	AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID,
+	AUTH_VALIDATE_ERROR_MESSAGE
+} from './auth.constants'
 import { UserModel } from '../user/user.model'
 
 @Injectable()
@@ -26,11 +29,9 @@ export class AuthService {
 		}
 		const refreshPayload = { id: user._id.toString() }
 		return {
-			accessToken: this.jwtService.sign(accessPayload, {
-				expiresIn: this.configService.get('jwt.accessTokenExpiresIn')
-			}),
+			accessToken: this.jwtService.sign(accessPayload),
 			refreshToken: this.jwtService.sign(refreshPayload, {
-				expiresIn: this.configService.get('jwt.refreshTokenExpiresIn')
+				expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn')
 			})
 		}
 	}
@@ -44,14 +45,23 @@ export class AuthService {
 	}
 
 	async refresh(refreshToken: string): Promise<TokensResponse | HttpException> {
-		const decoded = this.jwtService.decode(refreshToken) as { id: string }
-		if (!decoded) {
+		try {
+			const decoded = this.jwtService.verify<{ id: string }>(refreshToken)
+
+			const user = await this.userService.findUserById(decoded.id)
+			if (user instanceof HttpException) {
+				throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
+			}
+
+			return this.createTokens(user)
+		} catch (err) {
+			if (err instanceof TokenExpiredError) {
+				throw new HttpException(
+					AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID,
+					HttpStatus.UNAUTHORIZED
+				)
+			}
 			throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
 		}
-		const user = await this.userService.findUserById(decoded.id)
-		if (user instanceof HttpException) {
-			throw user
-		}
-		return this.createTokens(user)
 	}
 }

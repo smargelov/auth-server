@@ -8,6 +8,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	UseGuards,
 	UseInterceptors,
 	UsePipes,
 	ValidationPipe
@@ -23,11 +24,15 @@ import { HidePasswordInterceptor } from '../common/interceptors/hide-password.in
 import { UserModel } from './user.model'
 import { ValidateObjectIdPipe } from '../common/pipes/validate-object-id.pipe'
 import { USER_NOT_FOUND } from './user.constants'
+import { Roles } from '../common/decorators/roles.decorator'
+import { RoleGuard } from '../common/guards/role.guard'
 
 @UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(USER_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
 @UseInterceptors(HidePasswordInterceptor)
 @Controller('users')
+@Roles('admin')
+@UseGuards(RoleGuard)
 export class UserController {
 	constructor(private readonly userService: UserService) {}
 

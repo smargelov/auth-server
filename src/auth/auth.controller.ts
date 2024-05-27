@@ -13,18 +13,26 @@ import { Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { AUTH_NO_REFRESH_TOKEN } from './auth.constants'
+import { ConfigService } from '@nestjs/config'
+import * as ms from 'ms'
 
 @UsePipes(new ValidationPipe())
 @Controller('auth')
 export class AuthController {
-	constructor(private readonly authService: AuthService) {}
+	constructor(
+		private readonly authService: AuthService,
+		private readonly configService: ConfigService
+	) {}
 
 	private async setRefreshTokenCookie(response: Response, refreshToken: string) {
+		const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn')
+		const maxAge = ms(refreshTokenExpiresIn)
+
 		response.cookie('refreshToken', refreshToken, {
 			httpOnly: true,
 			secure: process.env.NODE_ENV === 'production',
 			sameSite: 'strict',
-			maxAge: 30 * 24 * 60 * 60 * 1000
+			maxAge
 		})
 	}
 

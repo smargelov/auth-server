@@ -1,14 +1,16 @@
 import { Module } from '@nestjs/common'
+import { ConfigModule } from '@nestjs/config'
+import { TypegooseModule } from 'nestjs-typegoose'
 import { UserController } from './user.controller'
 import { UserService } from './user.service'
 import { UserModel } from './user.model'
-import { TypegooseModule } from 'nestjs-typegoose'
 import { RoleModule } from '../role/role.module'
 import { PasswordService } from './password.service'
-import { ConfigModule } from '@nestjs/config'
+import { JwtModule } from '@nestjs/jwt'
 
 @Module({
 	imports: [
+		JwtModule,
 		RoleModule,
 		ConfigModule,
 		TypegooseModule.forFeature([
