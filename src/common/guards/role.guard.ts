@@ -9,6 +9,7 @@ import { Reflector } from '@nestjs/core'
 import { JwtService, TokenExpiredError } from '@nestjs/jwt'
 import { ROLES_KEY } from '../decorators/roles.decorator'
 import { ACCESS_DENIED, TOKEN_EXPIRED_OR_INVALID } from '../constants/common.constants'
+import { ConfigService } from '@nestjs/config'
 
 interface JwtPayload {
 	role: string
@@ -20,14 +21,17 @@ interface JwtPayload {
 export class RoleGuard implements CanActivate {
 	constructor(
 		private readonly reflector: Reflector,
-		private readonly jwtService: JwtService
+		private readonly jwtService: JwtService,
+		private readonly configService: ConfigService
 	) {}
 
 	canActivate(context: ExecutionContext): boolean {
-		const roles =
+		const roleNames =
 			this.reflector.get<string[]>(ROLES_KEY, context.getHandler()) ||
 			this.reflector.get<string[]>(ROLES_KEY, context.getClass())
-		if (!roles) {
+
+		const roles = this.getRoleFromConfig(roleNames)
+		if (!roles?.length) {
 			return true
 		}
 
@@ -50,6 +54,13 @@ export class RoleGuard implements CanActivate {
 		}
 
 		return true
+	}
+
+	private getRoleFromConfig(roles: string[]): string[] {
+		if (!roles?.length) {
+			return []
+		}
+		return roles.map((role) => this.configService.get(`roles.${role}`) ?? role)
 	}
 
 	private extractToken(authorization: string): string {
