@@ -4,6 +4,7 @@ import { Reflector } from '@nestjs/core'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { TypegooseModule } from 'nestjs-typegoose'
 import { APP_INTERCEPTOR } from '@nestjs/core'
+import * as yaml from 'yamljs'
 import { getMongoConfig } from '../configs/mongo.config'
 import { UserModule } from '../user/user.module'
 import { RoleModule } from '../role/role.module'
@@ -12,11 +13,14 @@ import { ExcludeIdInterceptor } from '../common/interceptors/exclude-id.intercep
 import { AuthModule } from '../auth/auth.module'
 import { RoleGuard } from '../common/guards/role.guard'
 import configuration from '../configs/configuration'
+import { join } from 'path'
+
+const configYaml = yaml.load(join(__dirname, '../../config.yaml'))
 
 @Module({
 	imports: [
 		ConfigModule.forRoot({
-			load: [configuration]
+			load: [() => ({ ...configYaml, ...configuration() })]
 		}),
 		TypegooseModule.forRootAsync({
 			imports: [ConfigModule],

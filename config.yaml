@@ -1,0 +1,19 @@
+api:
+    prefix: api
+    port: 3001
+
+jwt:
+    accessTokenExpiresIn: 15m
+    refreshTokenExpiresIn: 30d
+
+roles:
+    admin: admin
+    user: user
+
+admin:
+    email: admin@test.dev
+
+access:
+    modules:
+        user: [admin]
+        role: [admin]

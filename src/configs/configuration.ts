@@ -1,16 +1,26 @@
+import * as yaml from 'yamljs'
+import { join } from 'path'
+
+const configYaml = yaml.load(join(__dirname, '../../config.yaml'))
 export default () => ({
 	api: {
-		prefix: process.env.API_PREFIX || 'api',
-		port: process.env.API_PORT || 3001
+		prefix: configYaml.api.prefix || 'api',
+		port: configYaml.api.port || 3001
 	},
 	roles: {
-		admin: process.env.ADMIN_ROLE_NAME || 'admin',
-		user: process.env.USER_ROLE_NAME || 'user'
+		admin: configYaml.roles.admin || 'admin',
+		user: configYaml.roles.user || 'user'
 	},
-	adminEmail: process.env.ADMIN_EMAIL || 'admin@test.dev',
+	adminEmail: configYaml.admin.email || 'admin@test.dev',
 	jwt: {
 		secret: process.env.JWT_SECRET || 'hard!to_guess_secret',
-		accessTokenExpiresIn: process.env.JWT_ACCESS_TOKEN_EXPIRES_IN || '15m',
-		refreshTokenExpiresIn: process.env.JWT_REFRESH_TOKEN_EXPIRES_IN || '30d'
+		accessTokenExpiresIn: configYaml.jwt.accessTokenExpiresIn || '15m',
+		refreshTokenExpiresIn: configYaml.jwt.refreshTokenExpiresIn || '30d'
+	},
+	access: {
+		modules: {
+			user: configYaml.access.modules.user || ['admin'],
+			role: configYaml.access.modules.role || ['admin', 'user']
+		}
 	}
 })

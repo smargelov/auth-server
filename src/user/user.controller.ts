@@ -24,7 +24,7 @@ import { HidePasswordInterceptor } from '../common/interceptors/hide-password.in
 import { UserModel } from './user.model'
 import { ValidateObjectIdPipe } from '../common/pipes/validate-object-id.pipe'
 import { USER_NOT_FOUND } from './user.constants'
-import { Roles } from '../common/decorators/roles.decorator'
+import { Module } from '../common/decorators/module.decorator'
 import { RoleGuard } from '../common/guards/role.guard'
 import { ActiveGuard } from '../common/guards/active.guard'
 
@@ -32,7 +32,7 @@ import { ActiveGuard } from '../common/guards/active.guard'
 @UseInterceptors(CleanResponseInterceptor)
 @UseInterceptors(HidePasswordInterceptor)
 @Controller('users')
-@Roles('admin')
+@Module('user')
 @UseGuards(RoleGuard, ActiveGuard)
 export class UserController {
 	constructor(private readonly userService: UserService) {}
