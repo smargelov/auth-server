@@ -1,0 +1,6 @@
+export const ROLE_ALREADY_EXISTS = 'Role with this code already exists'
+export const ROLE_NOT_FOUND = 'Role with this code not found'
+export const ROLE_CODE_ALLOWED = 'only lowercase latin letters are allowed'
+export const ROLE_DELETED_MESSAGE = 'Role deleted'
+export const DEFAULT_ROLE_CAN_NOT_BE_DELETED = 'Default role can not be deleted'
+export const DEFAULT_ROLE_CAN_NOT_BE_UPDATED = 'Default role can not be updated'
