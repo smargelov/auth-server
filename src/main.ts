@@ -10,7 +10,9 @@ async function bootstrap() {
 	const configService = app.get(ConfigService)
 	const apiPrefix = configService.get('api.prefix')
 	const apiPort = configService.get('api.port')
-	app.setGlobalPrefix(apiPrefix)
+	app.setGlobalPrefix(apiPrefix, {
+		exclude: ['/confirm-email', '/reset-password']
+	})
 
 	await app.listen(apiPort)
 }

@@ -5,7 +5,7 @@ const configYaml = yaml.load(join(__dirname, '../../config.yaml'))
 
 export default () => ({
 	api: {
-		prefix: configYaml.api.prefix || 'api',
+		prefix: configYaml.api.prefix || 'auth-api',
 		port: configYaml.api.port || 3001
 	},
 	roles: {
@@ -31,5 +31,9 @@ export default () => ({
 			user: configYaml.access.modules.user || ['admin'],
 			role: configYaml.access.modules.role || ['admin']
 		}
+	},
+	app: {
+		frontendUrl: configYaml.app.frontendUrl || 'http://localhost:3000',
+		baseUrl: configYaml.app.baseUrl || 'http://localhost:3001'
 	}
 })

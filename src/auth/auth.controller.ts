@@ -7,7 +7,10 @@ import {
 	Post,
 	Res,
 	UsePipes,
-	ValidationPipe
+	ValidationPipe,
+	Get,
+	Redirect,
+	Query
 } from '@nestjs/common'
 import { Response } from 'express'
 import { AuthService } from './auth.service'
@@ -61,5 +64,28 @@ export class AuthController {
 		}
 		await this.setRefreshTokenCookie(response, tokens.refreshToken)
 		return { accessToken: tokens.accessToken }
+	}
+
+	@Get('confirm-email')
+	@Redirect()
+	async confirmEmail(@Query('token') token: string, @Res() res: Response) {
+		try {
+			const frontendUrl = this.configService.get<string>('app.frontendUrl')
+			return { url: `${frontendUrl}/email-confirmed?token=${token}` }
+		} catch (error) {
+			throw new HttpException('Email confirmation failed', HttpStatus.BAD_REQUEST)
+		}
+	}
+
+	@Get('reset-password')
+	@Redirect()
+	async resetPassword(@Query('token') token: string, @Res() res: Response) {
+		const frontendUrl = this.configService.get<string>('app.frontendUrl')
+		try {
+			const frontendUrl = this.configService.get<string>('app.frontendUrl')
+			return { url: `${frontendUrl}/reset-password?token=${token}` }
+		} catch (error) {
+			throw new HttpException('Password reset failed', HttpStatus.BAD_REQUEST)
+		}
 	}
 }

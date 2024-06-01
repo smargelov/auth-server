@@ -1,5 +1,5 @@
 api:
-    prefix: api
+    prefix: auth-api
     port: 3001
 
 jwt:
@@ -17,3 +17,7 @@ access:
     modules:
         user: [admin]
         role: [admin]
+
+app:
+    baseUrl: http://localhost:3001
+    frontendUrl: https://smargelov.com
