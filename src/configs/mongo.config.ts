@@ -1,48 +1,30 @@
 import { ConfigService } from '@nestjs/config'
 import type { TypegooseModuleOptions } from 'nestjs-typegoose'
 
-const getMongoProtocol = (configService: ConfigService): string => {
-	const protocol = configService.get('MONGO_PROTOCOL')
-	if (protocol) {
-		return protocol
-	}
-	return 'mongodb'
-}
-
-const getMongoHost = (configService: ConfigService): string => {
-	const host = configService.get('MONGO_HOST')
-	const port = configService.get('MONGO_PORT')
-	const protocol = getMongoProtocol(configService)
-	if (protocol === 'mongodb+srv' && host) {
-		return host
-	}
-	if (host && port) {
-		return host + ':' + port
-	}
-	if (host) {
-		return host + ':27017'
-	}
-	return '127.0.0.1:27017'
-}
-
 const getMongoUri = (configService: ConfigService): string => {
-	if (!configService.get('MONGO_APP_USER') || !configService.get('MONGO_APP_PASSWORD')) {
+	const protocol = configService.get<string>('mongo.protocol')
+	const user = configService.get<string>('mongo.user')
+	const password = configService.get<string>('mongo.password')
+	const host = configService.get<string>('mongo.host')
+	const port = configService.get<string>('mongo.port')
+	const name = configService.get<string>('mongo.name')
+
+	if (!user || !password) {
 		throw new Error('Missing MONGO_APP_USER or MONGO_APP_PASSWORD')
 	}
-	return (
-		getMongoProtocol(configService) +
-			'://' +
-			configService.get('MONGO_APP_USER') +
-			':' +
-			configService.get('MONGO_APP_PASSWORD') +
-			'@' +
-			getMongoHost(configService) +
-			'/' +
-			configService.get('MONGO_NAME') || ''
-	)
+
+	let uri = `${protocol}://${user}:${password}@${host}`
+	if (protocol !== 'mongodb+srv') {
+		uri += `:${port}`
+	}
+	uri += `/${name}`
+
+	return uri
 }
 
-const getMongoOptions = (): Record<string, unknown> => ({})
+const getMongoOptions = (): Record<string, unknown> => ({
+	// Any other MongoDB options can be added here
+})
 
 export const getMongoConfig = async (
 	configService: ConfigService
