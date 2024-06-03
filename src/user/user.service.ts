@@ -152,7 +152,7 @@ export class UserService {
 			.findOneAndUpdate({ _id: id }, user, { new: true })
 			.exec()
 		if (!updatedUser) {
-			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
+			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
 		}
 		return updatedUser
 	}

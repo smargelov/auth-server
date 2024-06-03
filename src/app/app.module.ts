@@ -11,6 +11,7 @@ import { ExcludeIdInterceptor } from '../common/interceptors/exclude-id.intercep
 import { AuthModule } from '../auth/auth.module'
 import { RoleGuard } from '../common/guards/role.guard'
 import configuration from '../configs/configuration'
+import { MailModule } from '../mail/mail.module'
 
 @Module({
 	imports: [
@@ -33,7 +34,8 @@ import configuration from '../configs/configuration'
 		}),
 		UserModule,
 		RoleModule,
-		AuthModule
+		AuthModule,
+		MailModule
 	],
 	providers: [
 		{
