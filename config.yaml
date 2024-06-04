@@ -11,13 +11,23 @@ roles:
     user: user
 
 admin:
+    # admin email
     email: admin@test.dev
 
 access:
+    # roles for access to
     modules:
+        # module name
         user: [admin]
         role: [admin]
 
 app:
+    # url for api
     baseUrl: http://localhost:3001
+    # url for frontend
     frontendUrl: https://smargelov.com
+    brand: Auth API
+
+mail:
+    host: smtp.yandex.ru
+    port: 465

@@ -33,7 +33,15 @@ export default () => ({
 		}
 	},
 	app: {
+		brand: configYaml.app.brand,
 		frontendUrl: configYaml.app.frontendUrl || 'http://localhost:3000',
 		baseUrl: configYaml.app.baseUrl || 'http://localhost:3001'
+	},
+	mail: {
+		host: configYaml.mail.host,
+		port: configYaml.mail.port,
+		user: process.env.MAIL_SERVICE_USER,
+		password: process.env.MAIL_SERVICE_PASSWORD,
+		from: process.env.MAIL_SERVICE_FROM
 	}
 })

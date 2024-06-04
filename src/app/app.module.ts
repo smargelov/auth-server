@@ -46,6 +46,6 @@ import { MailModule } from '../mail/mail.module'
 		RoleGuard,
 		Reflector
 	],
-	exports: [JwtModule, RoleGuard, UserModule, AuthModule]
+	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule]
 })
 export class AppModule {}

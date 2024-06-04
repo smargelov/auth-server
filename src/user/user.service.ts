@@ -19,6 +19,7 @@ import {
 	USER_NOT_FOUND
 } from './user.constants'
 import { ConfigService } from '@nestjs/config'
+import { MailService } from '../mail/mail.service'
 
 @Injectable()
 export class UserService {
@@ -26,6 +27,7 @@ export class UserService {
 		@InjectModel(UserModel) private readonly userModel: ModelType<UserModel>,
 		private readonly roleService: RoleService,
 		private readonly passwordService: PasswordService,
+		private readonly mailService: MailService,
 		private readonly configService: ConfigService
 	) {}
 
@@ -104,6 +106,7 @@ export class UserService {
 		if (!createdUser) {
 			throw new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
 		}
+		await this.mailService.sendConfirmEmail(createdUser.email, createdUser._id.toString())
 		return createdUser
 	}
 

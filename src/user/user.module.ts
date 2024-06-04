@@ -7,11 +7,13 @@ import { UserModel } from './user.model'
 import { RoleModule } from '../role/role.module'
 import { PasswordService } from './password.service'
 import { JwtModule } from '@nestjs/jwt'
+import { MailModule } from '../mail/mail.module'
 
 @Module({
 	imports: [
 		JwtModule,
 		RoleModule,
+		MailModule,
 		ConfigModule,
 		TypegooseModule.forFeature([
 			{
