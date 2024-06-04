@@ -25,6 +25,7 @@ export class AuthService {
 			role: user.role,
 			email: user.email,
 			displayName: user.displayName,
+			isConfirmedEmail: user.isConfirmedEmail,
 			isActive: user.isActive
 		}
 		const refreshPayload = { id: user._id.toString() }
