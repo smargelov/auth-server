@@ -13,6 +13,7 @@ import { RoleGuard } from '../common/guards/role.guard'
 import configuration from '../configs/configuration'
 import { MailModule } from '../mail/mail.module'
 import { LinkModule } from '../link/link.module'
+import { CookieModule } from '../cookie/cookie.module'
 
 @Module({
 	imports: [
@@ -37,7 +38,8 @@ import { LinkModule } from '../link/link.module'
 		RoleModule,
 		AuthModule,
 		MailModule,
-		LinkModule
+		LinkModule,
+		CookieModule
 	],
 	providers: [
 		{
@@ -48,6 +50,6 @@ import { LinkModule } from '../link/link.module'
 		RoleGuard,
 		Reflector
 	],
-	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule, LinkModule]
+	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule, LinkModule, CookieModule]
 })
 export class AppModule {}

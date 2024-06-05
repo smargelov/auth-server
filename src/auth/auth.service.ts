@@ -11,6 +11,8 @@ import {
 	RESET_PASSWORD_LINK_SENT
 } from './auth.constants'
 import { UserModel } from '../user/user.model'
+import { Response } from 'express'
+import * as ms from 'ms'
 
 @Injectable()
 export class AuthService {
@@ -20,7 +22,7 @@ export class AuthService {
 		private readonly configService: ConfigService
 	) {}
 
-	private async createTokens(user: DocumentType<UserModel>): Promise<TokensResponse> {
+	async createTokens(user: DocumentType<UserModel>): Promise<TokensResponse> {
 		const accessPayload = {
 			id: user._id.toString(),
 			role: user.role,

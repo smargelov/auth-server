@@ -223,12 +223,11 @@ export class UserService {
 
 	async updateResetPasswordTokenById(
 		id: string,
-		resetPasswordToken: Nullable<string>,
-		canChangePassword: boolean = false
+		resetPasswordToken: Nullable<string>
 	): Promise<DocumentType<UserModel> | HttpException> {
 		const updatedUser = await this.userModel.findOneAndUpdate(
 			{ _id: id },
-			{ resetPasswordToken, canChangePassword },
+			{ resetPasswordToken },
 			{ new: true }
 		)
 		if (!updatedUser) {

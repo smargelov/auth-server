@@ -13,28 +13,16 @@ import { Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { AUTH_NO_REFRESH_TOKEN } from './auth.constants'
-import { ConfigService } from '@nestjs/config'
-import * as ms from 'ms'
+import { GetResetPasswordLinkDto } from './dto/get-reset-password-link.dto'
+import { CookieService } from '../cookie/cookie.service'
 
 @UsePipes(new ValidationPipe())
 @Controller('auth')
 export class AuthController {
 	constructor(
 		private readonly authService: AuthService,
-		private readonly configService: ConfigService
+		private readonly cookieService: CookieService
 	) {}
-
-	private async setRefreshTokenCookie(response: Response, refreshToken: string) {
-		const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn')
-		const maxAge = ms(refreshTokenExpiresIn)
-
-		response.cookie('refreshToken', refreshToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
-			maxAge
-		})
-	}
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
@@ -43,7 +31,7 @@ export class AuthController {
 		if (tokens instanceof HttpException) {
 			throw tokens
 		}
-		await this.setRefreshTokenCookie(response, tokens.refreshToken)
+		await this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken)
 
 		return { accessToken: tokens.accessToken }
 	}
@@ -59,17 +47,19 @@ export class AuthController {
 		if (tokens instanceof HttpException) {
 			throw tokens
 		}
-		await this.setRefreshTokenCookie(response, tokens.refreshToken)
+		await this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken)
 		return { accessToken: tokens.accessToken }
 	}
 
 	@Post('get-reset-password-link')
 	@HttpCode(HttpStatus.OK)
-	async getResetPasswordLink(@Body() dto: { email: string }) {
+	async getResetPasswordLink(@Body() dto: GetResetPasswordLinkDto) {
 		const result = await this.authService.getResetPasswordLink(dto.email)
 		if (result instanceof HttpException) {
 			throw result
 		}
 		return result
 	}
+
+	// todo add change password endpoint
 }

@@ -1,12 +1,13 @@
 import { HttpException, Injectable } from '@nestjs/common'
 import { UserService } from '../user/user.service'
 import { UserModel } from '../user/user.model'
+import type { DocumentType } from '@typegoose/typegoose/lib/types'
 
 @Injectable()
 export class LinkService {
 	constructor(private readonly userService: UserService) {}
 
-	async confirmEmail(token: string): Promise<UserModel | HttpException> {
+	async confirmEmail(token: string): Promise<DocumentType<UserModel> | HttpException> {
 		const user = await this.userService.findUserByConfirmEmailToken(token)
 		if (user instanceof HttpException) {
 			throw user
@@ -28,8 +29,7 @@ export class LinkService {
 		}
 		const updatedUser = await this.userService.updateResetPasswordTokenById(
 			user._id.toString(),
-			null,
-			true
+			null
 		)
 		if (updatedUser instanceof HttpException) {
 			throw updatedUser
