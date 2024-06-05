@@ -62,4 +62,14 @@ export class AuthController {
 		await this.setRefreshTokenCookie(response, tokens.refreshToken)
 		return { accessToken: tokens.accessToken }
 	}
+
+	@Post('get-reset-password-link')
+	@HttpCode(HttpStatus.OK)
+	async getResetPasswordLink(@Body() dto: { email: string }) {
+		const result = await this.authService.getResetPasswordLink(dto.email)
+		if (result instanceof HttpException) {
+			throw result
+		}
+		return result
+	}
 }

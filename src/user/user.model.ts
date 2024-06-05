@@ -15,8 +15,14 @@ export class UserModel extends TimeStamps {
 	@prop({ required: true, default: false })
 	isConfirmedEmail: boolean
 
+	@prop({ required: true, default: false })
+	canChangePassword?: boolean
+
 	@prop()
 	emailConfirmationToken?: Nullable<string>
+
+	@prop()
+	resetPasswordToken?: Nullable<string>
 
 	@prop()
 	displayName?: string

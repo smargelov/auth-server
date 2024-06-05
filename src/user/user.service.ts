@@ -37,11 +37,6 @@ export class UserService {
 		private readonly configService: ConfigService
 	) {}
 
-	private async userExists(email: CreateUserDto['email']): Promise<boolean> {
-		const user = await this.userModel.findOne({ email }).exec()
-		return !!user
-	}
-
 	private async getUserWithPasswordHash<T extends CreateUserDto | UpdateUserDto>(
 		dto: T
 	): Promise<ReplacePasswordWithHash<T> | T> {
@@ -63,7 +58,7 @@ export class UserService {
 		return !!roleExists
 	}
 
-	private async sendConfirmEmail<T extends CreateUserDto | UpdateUserDto>(
+	private async confirmEmailHandler<T extends CreateUserDto | UpdateUserDto>(
 		user: ReplacePasswordWithHash<T> | T
 	): Promise<ReplacePasswordWithHash<T> | T> {
 		if (!user.email) {
@@ -72,6 +67,17 @@ export class UserService {
 		const emailConfirmationToken = uuidv4()
 		const result = await this.mailService.sendConfirmEmail(user.email, emailConfirmationToken)
 		return result ? { ...user, emailConfirmationToken, isConfirmedEmail: false } : user
+	}
+
+	private async userExists(email: CreateUserDto['email']): Promise<boolean> {
+		const user = await this.userModel.findOne({ email }).exec()
+		return !!user
+	}
+
+	async resetPasswordHandler(email: string): Promise<string> {
+		const resetPasswordToken = uuidv4()
+		await this.mailService.sendResetPassword(email, resetPasswordToken)
+		return resetPasswordToken
 	}
 
 	async validateUser(
@@ -104,7 +110,7 @@ export class UserService {
 			return true
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.sendConfirmEmail(user)
+		const userWithConfirmEmail = await this.confirmEmailHandler(user)
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			console.log(`Failed to create user with email ${dto.email}`)
@@ -124,7 +130,7 @@ export class UserService {
 			throw new HttpException(USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.sendConfirmEmail(user)
+		const userWithConfirmEmail = await this.confirmEmailHandler(user)
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			throw new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
@@ -140,12 +146,34 @@ export class UserService {
 		return user
 	}
 
+	async findUserByEmail(email: string): Promise<DocumentType<UserModel> | HttpException> {
+		const user = await this.userModel.findOne({ email }).exec()
+		if (!user) {
+			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		return user
+	}
+
 	async findUserByConfirmEmailToken(
 		emailConfirmationToken: string
 	): Promise<DocumentType<UserModel> | HttpException> {
 		const user = await this.userModel.findOne({ emailConfirmationToken }).exec()
 		if (!user) {
 			throw new HttpException(FILED_EMAIL_CONFIRMATION_TOKEN, HttpStatus.NOT_FOUND)
+		}
+		return user
+	}
+
+	async findUserByResetPasswordToken(
+		resetPasswordToken: string
+	): Promise<DocumentType<UserModel> | HttpException> {
+		const user = await this.userModel
+			.findOne({
+				resetPasswordToken
+			})
+			.exec()
+		if (!user) {
+			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
 		}
 		return user
 	}
@@ -183,10 +211,26 @@ export class UserService {
 			await this.checkRoleExists(dto.role)
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.sendConfirmEmail(user)
+		const userWithConfirmEmail = await this.confirmEmailHandler(user)
 		const updatedUser = await this.userModel
 			.findOneAndUpdate({ _id: id }, userWithConfirmEmail, { new: true })
 			.exec()
+		if (!updatedUser) {
+			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
+		}
+		return updatedUser
+	}
+
+	async updateResetPasswordTokenById(
+		id: string,
+		resetPasswordToken: Nullable<string>,
+		canChangePassword: boolean = false
+	): Promise<DocumentType<UserModel> | HttpException> {
+		const updatedUser = await this.userModel.findOneAndUpdate(
+			{ _id: id },
+			{ resetPasswordToken, canChangePassword },
+			{ new: true }
+		)
 		if (!updatedUser) {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
 		}

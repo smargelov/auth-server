@@ -1,6 +1,4 @@
 import { HttpException, Injectable } from '@nestjs/common'
-import { MailService } from '../mail/mail.service'
-import { ConfigService } from '@nestjs/config'
 import { UserService } from '../user/user.service'
 import { UserModel } from '../user/user.model'
 
@@ -21,5 +19,21 @@ export class LinkService {
 			throw confirmedUser
 		}
 		return confirmedUser
+	}
+
+	async setCanChangePassword(token: string): Promise<UserModel | HttpException> {
+		const user = await this.userService.findUserByResetPasswordToken(token)
+		if (user instanceof HttpException) {
+			throw user
+		}
+		const updatedUser = await this.userService.updateResetPasswordTokenById(
+			user._id.toString(),
+			null,
+			true
+		)
+		if (updatedUser instanceof HttpException) {
+			throw updatedUser
+		}
+		return updatedUser
 	}
 }

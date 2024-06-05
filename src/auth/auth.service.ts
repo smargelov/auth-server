@@ -7,7 +7,8 @@ import { LoginDto } from './dto/login.dto'
 import { TokensResponse } from './responses/tokens.response'
 import {
 	AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID,
-	AUTH_VALIDATE_ERROR_MESSAGE
+	AUTH_VALIDATE_ERROR_MESSAGE,
+	RESET_PASSWORD_LINK_SENT
 } from './auth.constants'
 import { UserModel } from '../user/user.model'
 
@@ -64,5 +65,16 @@ export class AuthService {
 			}
 			throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
 		}
+	}
+
+	async getResetPasswordLink(email: string): Promise<{ message: string } | HttpException> {
+		const user = await this.userService.findUserByEmail(email)
+		if (user instanceof HttpException) {
+			throw user
+		}
+		const resetPasswordToken = await this.userService.resetPasswordHandler(user.email)
+		await this.userService.updateResetPasswordTokenById(user._id.toString(), resetPasswordToken)
+
+		return { message: RESET_PASSWORD_LINK_SENT }
 	}
 }

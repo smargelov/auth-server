@@ -14,7 +14,7 @@ export class LinkController {
 	async confirmEmail(@Query('token') token: string, @Res() res: Response) {
 		const frontendUrl = this.configService.get<string>('app.frontendUrl')
 		try {
-			const user = await this.linkService.confirmEmail(token)
+			await this.linkService.confirmEmail(token)
 			return { url: `${frontendUrl}/email-confirmed?success` }
 		} catch (error) {
 			if (error instanceof HttpException) {
@@ -28,10 +28,12 @@ export class LinkController {
 	async resetPassword(@Query('token') token: string, @Res() res: Response) {
 		const frontendUrl = this.configService.get<string>('app.frontendUrl')
 		try {
-			const frontendUrl = this.configService.get<string>('app.frontendUrl')
-			return { url: `${frontendUrl}/reset-password?token=${token}` }
+			await this.linkService.setCanChangePassword(token)
+			return { url: `${frontendUrl}/change-password?success` }
 		} catch (error) {
-			throw new HttpException('Password reset failed', HttpStatus.BAD_REQUEST)
+			if (error instanceof HttpException) {
+				return { url: `${frontendUrl}/change-password?error=${error.message}` }
+			}
 		}
 	}
 }
