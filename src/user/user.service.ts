@@ -13,6 +13,7 @@ import { ROLE_NOT_FOUND } from '../role/role.constants'
 import {
 	FAILED_TO_CREATE_USER,
 	FAILED_TO_UPDATE_USER,
+	FILED_EMAIL_CONFIRMATION_TOKEN,
 	FILED_PASSWORD_COMPARE,
 	USER_ALREADY_EXISTS,
 	USER_DELETED_MESSAGE,
@@ -135,6 +136,16 @@ export class UserService {
 		const user = await this.userModel.findOne({ _id: id }).exec()
 		if (!user) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		return user
+	}
+
+	async findUserByConfirmEmailToken(
+		emailConfirmationToken: string
+	): Promise<DocumentType<UserModel> | HttpException> {
+		const user = await this.userModel.findOne({ emailConfirmationToken }).exec()
+		if (!user) {
+			throw new HttpException(FILED_EMAIL_CONFIRMATION_TOKEN, HttpStatus.NOT_FOUND)
 		}
 		return user
 	}

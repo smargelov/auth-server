@@ -19,4 +19,12 @@ export abstract class UserDto {
 	@IsOptional()
 	@IsBoolean()
 	isActive?: boolean = false
+
+	@IsOptional()
+	@IsBoolean()
+	isConfirmedEmail?: boolean = false
+
+	@IsOptional()
+	@IsString()
+	emailConfirmationToken?: string
 }

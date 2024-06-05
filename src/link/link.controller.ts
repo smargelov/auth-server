@@ -1,18 +1,25 @@
 import { Controller, Get, HttpException, HttpStatus, Query, Redirect, Res } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
+import { LinkService } from './link.service'
 
 @Controller()
-export class MailController {
-	constructor(private readonly configService: ConfigService) {}
+export class LinkController {
+	constructor(
+		private readonly linkService: LinkService,
+		private readonly configService: ConfigService
+	) {}
 
 	@Get('confirm-email')
 	@Redirect()
 	async confirmEmail(@Query('token') token: string, @Res() res: Response) {
+		const frontendUrl = this.configService.get<string>('app.frontendUrl')
 		try {
-			const frontendUrl = this.configService.get<string>('app.frontendUrl')
-			return { url: `${frontendUrl}/email-confirmed?token=${token}` }
+			const user = await this.linkService.confirmEmail(token)
+			return { url: `${frontendUrl}/email-confirmed?success` }
 		} catch (error) {
-			throw new HttpException('Email confirmation failed', HttpStatus.BAD_REQUEST)
+			if (error instanceof HttpException) {
+				return { url: `${frontendUrl}/email-confirmed?error=${error.message}` }
+			}
 		}
 	}
 

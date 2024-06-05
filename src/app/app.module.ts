@@ -12,6 +12,7 @@ import { AuthModule } from '../auth/auth.module'
 import { RoleGuard } from '../common/guards/role.guard'
 import configuration from '../configs/configuration'
 import { MailModule } from '../mail/mail.module'
+import { LinkModule } from '../link/link.module'
 
 @Module({
 	imports: [
@@ -35,7 +36,8 @@ import { MailModule } from '../mail/mail.module'
 		UserModule,
 		RoleModule,
 		AuthModule,
-		MailModule
+		MailModule,
+		LinkModule
 	],
 	providers: [
 		{
@@ -46,6 +48,6 @@ import { MailModule } from '../mail/mail.module'
 		RoleGuard,
 		Reflector
 	],
-	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule]
+	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule, LinkModule]
 })
 export class AppModule {}

@@ -1,7 +1,6 @@
 import { Module } from '@nestjs/common'
 import { ConfigModule, ConfigService } from '@nestjs/config'
 import { MailService } from './mail.service'
-import { MailController } from './mail.controller'
 import { MailerModule } from '@nestjs-modules/mailer'
 import { PugAdapter } from '@nestjs-modules/mailer/dist/adapters/pug.adapter'
 import { join } from 'path'
@@ -35,7 +34,6 @@ import { join } from 'path'
 			})
 		})
 	],
-	controllers: [MailController],
 	providers: [MailService],
 	exports: [MailService]
 })
