@@ -22,6 +22,7 @@ import {
 import { ConfigService } from '@nestjs/config'
 import { MailService } from '../mail/mail.service'
 import { v4 as uuidv4 } from 'uuid'
+import { LoginDto } from '../auth/dto/login.dto'
 
 type ReplacePasswordWithHash<T extends CreateUserDto | UpdateUserDto> = Omit<T, 'password'> & {
 	passwordHash: string
@@ -58,18 +59,14 @@ export class UserService {
 		return !!roleExists
 	}
 
-	private async confirmEmailHandler<T extends CreateUserDto | UpdateUserDto>(
-		user: ReplacePasswordWithHash<T> | T
-	): Promise<ReplacePasswordWithHash<T> | T> {
-		if (!user.email) {
-			return user
-		}
+	private async confirmEmailHandler(email: string): Promise<string | HttpException> {
 		const emailConfirmationToken = uuidv4()
-		const result = await this.mailService.sendConfirmEmail(user.email, emailConfirmationToken)
-		return result ? { ...user, emailConfirmationToken, isConfirmedEmail: false } : user
+		await this.mailService.sendConfirmEmail(email, emailConfirmationToken)
+		// return result ? { ...user, emailConfirmationToken, isConfirmedEmail: false } : user
+		return emailConfirmationToken
 	}
 
-	private async userExists(email: CreateUserDto['email']): Promise<boolean> {
+	private async userExists(email: string): Promise<boolean> {
 		const user = await this.userModel.findOne({ email }).exec()
 		return !!user
 	}
@@ -110,7 +107,8 @@ export class UserService {
 			return true
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.confirmEmailHandler(user)
+		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
+		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			console.log(`Failed to create user with email ${dto.email}`)
@@ -130,7 +128,8 @@ export class UserService {
 			throw new HttpException(USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.confirmEmailHandler(user)
+		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
+		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			throw new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
@@ -211,7 +210,8 @@ export class UserService {
 			await this.checkRoleExists(dto.role)
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const userWithConfirmEmail = await this.confirmEmailHandler(user)
+		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
+		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
 		const updatedUser = await this.userModel
 			.findOneAndUpdate({ _id: id }, userWithConfirmEmail, { new: true })
 			.exec()
@@ -230,6 +230,21 @@ export class UserService {
 			{ resetPasswordToken },
 			{ new: true }
 		)
+		if (!updatedUser) {
+			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
+		}
+		return updatedUser
+	}
+
+	async changePassword(dto: LoginDto): Promise<DocumentType<UserModel> | HttpException> {
+		const isUser = await this.userExists(dto.email)
+		if (!isUser) {
+			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
+		}
+		const passwordHash = await this.passwordService.hashPassword(dto.password)
+		const updatedUser = await this.userModel
+			.findOneAndUpdate({ email: dto.email }, { passwordHash }, { new: true })
+			.exec()
 		if (!updatedUser) {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
 		}

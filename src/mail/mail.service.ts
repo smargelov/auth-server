@@ -19,11 +19,11 @@ export class MailService {
 		return { baseUrl, brand }
 	}
 
-	async sendConfirmEmail(email: string, token: string) {
+	async sendConfirmEmail(email: string, token: string): Promise<boolean | HttpException> {
 		try {
 			const result = this.checkBaseUrlAndBrand()
 			if (!result) {
-				return result
+				throw new Error()
 			}
 			const { baseUrl, brand } = result
 			const confirmationUrl = `${baseUrl}/confirm-email?token=${token}`
@@ -38,11 +38,11 @@ export class MailService {
 			})
 			return true
 		} catch (e) {
-			return false
+			throw new HttpException(ERROR_SENDING_EMAIL, HttpStatus.BAD_REQUEST)
 		}
 	}
 
-	async sendResetPassword(email: string, token: string) {
+	async sendResetPassword(email: string, token: string): Promise<boolean | HttpException> {
 		try {
 			const result = this.checkBaseUrlAndBrand()
 			if (!result) {

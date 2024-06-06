@@ -4,6 +4,7 @@ import {
 	HttpCode,
 	HttpException,
 	HttpStatus,
+	Patch,
 	Post,
 	Res,
 	UsePipes,
@@ -12,28 +13,38 @@ import {
 import { Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
-import { AUTH_NO_REFRESH_TOKEN } from './auth.constants'
+import {
+	AUTH_NO_REFRESH_TOKEN,
+	PASSWORD_CHANGED_NOT_ALLOWED,
+	PASSWORD_CHANGED_SUCCESSFULLY
+} from './auth.constants'
 import { GetResetPasswordLinkDto } from './dto/get-reset-password-link.dto'
 import { CookieService } from '../cookie/cookie.service'
+import { UserService } from '../user/user.service'
+import { TokensResponse } from './responses/tokens.response'
 
 @UsePipes(new ValidationPipe())
 @Controller('auth')
 export class AuthController {
 	constructor(
 		private readonly authService: AuthService,
-		private readonly cookieService: CookieService
+		private readonly cookieService: CookieService,
+		private readonly userService: UserService
 	) {}
+
+	private async tokensHandler(tokens: TokensResponse | HttpException, response: Response) {
+		if (tokens instanceof HttpException) {
+			throw tokens
+		}
+		await this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken)
+		return { accessToken: tokens.accessToken }
+	}
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
 	async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
 		const tokens = await this.authService.login(dto)
-		if (tokens instanceof HttpException) {
-			throw tokens
-		}
-		await this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken)
-
-		return { accessToken: tokens.accessToken }
+		return this.tokensHandler(tokens, response)
 	}
 
 	@Post('refresh')
@@ -44,11 +55,7 @@ export class AuthController {
 			throw new HttpException(AUTH_NO_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
 		}
 		const tokens = await this.authService.refresh(refreshToken)
-		if (tokens instanceof HttpException) {
-			throw tokens
-		}
-		await this.cookieService.setRefreshTokenCookie(response, tokens.refreshToken)
-		return { accessToken: tokens.accessToken }
+		return this.tokensHandler(tokens, response)
 	}
 
 	@Post('get-reset-password-link')
@@ -61,5 +68,19 @@ export class AuthController {
 		return result
 	}
 
-	// todo add change password endpoint
+	@Patch('change-password')
+	async changePassword(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
+		const cookieEmail = response.req.cookies['canChangePasswordForEmail']
+		if (!cookieEmail || cookieEmail !== dto.email) {
+			throw new HttpException(PASSWORD_CHANGED_NOT_ALLOWED, HttpStatus.BAD_REQUEST)
+		}
+		const result = await this.userService.changePassword(dto)
+		if (result instanceof HttpException) {
+			throw result
+		}
+		const tokens = await this.authService.createTokens(result)
+		const answer = await this.tokensHandler(tokens, response)
+		response.clearCookie('canChangePasswordForEmail')
+		return { ...answer, message: PASSWORD_CHANGED_SUCCESSFULLY }
+	}
 }

@@ -46,7 +46,7 @@ export class LinkController {
 			await this.cookieService.setCanChangePasswordCookie(response, user.email)
 			return { url: `${frontendUrl}/change-password?success` }
 		} catch (error) {
-			response.clearCookie('canChangePassword')
+			response.clearCookie('canChangePasswordForEmail')
 			if (error instanceof HttpException) {
 				return { url: `${frontendUrl}/change-password?error=${error.message}` }
 			}
