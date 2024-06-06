@@ -1,135 +1,139 @@
 import { Test, TestingModule } from '@nestjs/testing'
+import { UserController } from '../user.controller'
 import { UserService } from '../user.service'
-import { UserModel } from '../user.model'
-import { RoleService } from '../../role/role.service'
-import { ConfigService } from '@nestjs/config'
-import { ReturnModelType } from '@typegoose/typegoose'
-import { getModelToken } from 'nestjs-typegoose'
-import { PasswordService } from '../password.service'
 import { CreateUserDto } from '../dto/create-user.dto'
-import { FindUserDto } from '../dto/find-user.dto'
 import { UpdateUserDto } from '../dto/update-user.dto'
+import { FindUserDto } from '../dto/find-user.dto'
+import { JwtService } from '@nestjs/jwt'
+import { RoleGuard } from '../../common/guards/role.guard'
+import { ActiveGuard } from '../../common/guards/active.guard'
+import { Reflector } from '@nestjs/core'
+import { ConfigService } from '@nestjs/config'
+import { DocumentType } from '@typegoose/typegoose/lib/types'
+import { HttpException } from '@nestjs/common'
+import { UserModel } from '../user.model'
 
-describe('UserService', () => {
+describe('UserController', () => {
+	let controller: UserController
 	let service: UserService
-	let model: ReturnModelType<typeof UserModel>
-	let mockCreate, mockFind, mockFindById, mockFindOneAndDelete, mockFindOneAndUpdate, mockFindOne
 
 	beforeAll(async () => {
-		mockCreate = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('create')
-		})
-		mockFind = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('find')
-		})
-		mockFindById = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('getOne')
-		})
-		mockFindOneAndDelete = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('delete')
-		})
-		mockFindOneAndUpdate = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('update')
-		})
-		mockFindOne = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('findOne')
-		})
-
 		const module: TestingModule = await Test.createTestingModule({
+			controllers: [UserController],
 			providers: [
-				UserService,
 				{
-					provide: getModelToken('UserModel'),
+					provide: UserService,
 					useValue: {
-						create: mockCreate,
-						find: mockFind,
-						findById: mockFindById,
-						findOneAndDelete: mockFindOneAndDelete,
-						findOneAndUpdate: mockFindOneAndUpdate,
-						findOne: mockFindOne
+						create: jest.fn(),
+						find: jest.fn(),
+						findUserById: jest.fn(),
+						deleteById: jest.fn(),
+						updateById: jest.fn(),
+						findUserByEmail: jest.fn(),
+						findUserByConfirmEmailToken: jest.fn(),
+						findUserByResetPasswordToken: jest.fn(),
+						validateUser: jest.fn(),
+						initialize: jest.fn(),
+						resetPasswordHandler: jest.fn(),
+						updateResetPasswordTokenById: jest.fn(),
+						changePassword: jest.fn()
 					}
 				},
 				{
-					provide: RoleService,
+					provide: JwtService,
 					useValue: {
-						roleExists: jest.fn().mockResolvedValue(true)
+						verify: jest.fn().mockResolvedValue(true)
 					}
 				},
-				{
-					provide: PasswordService,
-					useValue: {
-						hashPassword: jest.fn().mockResolvedValue('hashedPassword')
-					}
-				},
-				{
-					provide: ConfigService,
-					useValue: {
-						get: jest.fn().mockReturnValue('user')
-					}
-				}
+				RoleGuard,
+				ActiveGuard,
+				Reflector,
+				ConfigService
 			]
 		}).compile()
 
+		controller = module.get<UserController>(UserController)
 		service = module.get<UserService>(UserService)
-		model = module.get<ReturnModelType<typeof UserModel>>(getModelToken('UserModel'))
-
-		model.findOne = jest.fn().mockImplementation((query) => {
-			if (query.email) {
-				return {
-					exec: jest.fn().mockResolvedValue(null)
-				}
-			} else if (query._id) {
-				return {
-					exec: jest.fn().mockResolvedValue({ _id: 'testId', email: 'test@test.com' })
-				}
-			}
-			return {
-				exec: jest.fn().mockResolvedValue(null)
-			}
-		})
-		model.countDocuments = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue(10)
-		})
-
-		model.find = jest.fn().mockReturnValue({
-			skip: jest.fn().mockReturnThis(),
-			limit: jest.fn().mockReturnThis(),
-			exec: jest.fn().mockResolvedValue([])
-		})
 	})
 
 	afterEach(() => {
 		jest.clearAllMocks()
 	})
 
-	it('should call create with correct params', async () => {
+	it('should be defined', () => {
+		expect(controller).toBeDefined()
+	})
+
+	it('should create a user', async () => {
 		const dto = new CreateUserDto()
-		await service.create(dto)
-		expect(model.create).toHaveBeenCalledWith(dto)
+		jest.spyOn(service, 'create').mockResolvedValue(
+			'create' as unknown as DocumentType<UserModel>
+		)
+		expect(await controller.create(dto)).toBe('create')
+		expect(service.create).toHaveBeenCalledWith(dto)
 	})
 
-	it('should call findUserById with correct params', async () => {
-		const id = 'testId'
-		await service.findUserById(id)
-		expect(model.findOne).toHaveBeenCalledWith({ _id: id })
+	it('should handle create user exception', async () => {
+		const dto = new CreateUserDto()
+		jest.spyOn(service, 'create').mockRejectedValue(new HttpException('Error', 400))
+		await expect(controller.create(dto)).rejects.toThrow(HttpException)
 	})
 
-	it('should call find with correct params', async () => {
+	it('should find users', async () => {
 		const dto = new FindUserDto()
-		await service.find(dto)
-		expect(model.find).toHaveBeenCalled()
+		jest.spyOn(service, 'find').mockResolvedValue('find' as unknown as any)
+		expect(await controller.find(dto)).toBe('find')
+		expect(service.find).toHaveBeenCalledWith(dto)
 	})
 
-	it('should call deleteById with correct params', async () => {
+	it('should handle find users exception', async () => {
+		const dto = new FindUserDto()
+		jest.spyOn(service, 'find').mockRejectedValue(new HttpException('Error', 400))
+		await expect(controller.find(dto)).rejects.toThrow(HttpException)
+	})
+
+	it('should get user by id', async () => {
 		const id = 'testId'
-		await service.deleteById(id)
-		expect(model.findOneAndDelete).toHaveBeenCalledWith({ _id: id })
+		jest.spyOn(service, 'findUserById').mockResolvedValue(
+			'findUserById' as unknown as DocumentType<UserModel>
+		)
+		expect(await controller.getOne(id)).toBe('findUserById')
+		expect(service.findUserById).toHaveBeenCalledWith(id)
 	})
 
-	it('should call updateById with correct params', async () => {
+	it('should handle get user by id exception', async () => {
+		const id = 'testId'
+		jest.spyOn(service, 'findUserById').mockRejectedValue(new HttpException('Error', 400))
+		await expect(controller.getOne(id)).rejects.toThrow(HttpException)
+	})
+
+	it('should delete user by id', async () => {
+		const id = 'testId'
+		jest.spyOn(service, 'deleteById').mockResolvedValue({ message: 'deleteById' })
+		expect(await controller.delete(id)).toEqual({ message: 'deleteById' })
+		expect(service.deleteById).toHaveBeenCalledWith(id)
+	})
+
+	it('should handle delete user by id exception', async () => {
+		const id = 'testId'
+		jest.spyOn(service, 'deleteById').mockRejectedValue(new HttpException('Error', 400))
+		await expect(controller.delete(id)).rejects.toThrow(HttpException)
+	})
+
+	it('should update user by id', async () => {
 		const id = 'testId'
 		const dto = new UpdateUserDto()
-		await service.updateById(id, dto)
-		expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: id }, dto, { new: true })
+		jest.spyOn(service, 'updateById').mockResolvedValue(
+			'updateById' as unknown as DocumentType<UserModel>
+		)
+		expect(await controller.update(id, dto)).toBe('updateById')
+		expect(service.updateById).toHaveBeenCalledWith(id, dto)
+	})
+
+	it('should handle update user by id exception', async () => {
+		const id = 'testId'
+		const dto = new UpdateUserDto()
+		jest.spyOn(service, 'updateById').mockRejectedValue(new HttpException('Error', 400))
+		await expect(controller.update(id, dto)).rejects.toThrow(HttpException)
 	})
 })

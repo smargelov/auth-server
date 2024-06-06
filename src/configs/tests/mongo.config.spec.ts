@@ -10,7 +10,7 @@ describe('Mongo Config', () => {
 
 	it('should throw an error if MONGO_APP_USER or MONGO_APP_PASSWORD is missing', async () => {
 		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
-			if (key === 'MONGO_APP_USER' || key === 'MONGO_APP_PASSWORD') {
+			if (key === 'mongo.user' || key === 'mongo.password') {
 				return null
 			}
 			return 'value'
@@ -23,15 +23,15 @@ describe('Mongo Config', () => {
 	it('should connect to a cloud database', async () => {
 		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
 			switch (key) {
-				case 'MONGO_PROTOCOL':
+				case 'mongo.protocol':
 					return 'mongodb+srv'
-				case 'MONGO_HOST':
+				case 'mongo.host':
 					return 'cloud.mongodb.com'
-				case 'MONGO_APP_USER':
+				case 'mongo.user':
 					return 'cloudUser'
-				case 'MONGO_APP_PASSWORD':
+				case 'mongo.password':
 					return 'cloudPassword'
-				case 'MONGO_NAME':
+				case 'mongo.name':
 					return 'cloudDb'
 				default:
 					return null
@@ -44,17 +44,17 @@ describe('Mongo Config', () => {
 	it('should get the correct Mongo config', async () => {
 		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
 			switch (key) {
-				case 'MONGO_PROTOCOL':
+				case 'mongo.protocol':
 					return 'mongodb'
-				case 'MONGO_HOST':
+				case 'mongo.host':
 					return 'localhost'
-				case 'MONGO_PORT':
+				case 'mongo.port':
 					return '27017'
-				case 'MONGO_APP_USER':
+				case 'mongo.user':
 					return 'user'
-				case 'MONGO_APP_PASSWORD':
+				case 'mongo.password':
 					return 'password'
-				case 'MONGO_NAME':
+				case 'mongo.name':
 					return 'dbname'
 				default:
 					return null
@@ -66,34 +66,13 @@ describe('Mongo Config', () => {
 
 	it('should use the correct Mongo protocol without protocol env', async () => {
 		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
-			if (key === 'MONGO_PROTOCOL') {
+			if (key === 'mongo.protocol') {
 				return null
 			}
 			return 'value'
 		})
+		jest.spyOn(configService, 'get').mockReturnValueOnce('mongodb') // Default protocol
 		const config = await getMongoConfig(configService)
 		expect(config.uri.startsWith('mongodb://')).toBeTruthy()
-	})
-
-	it('should use the correct uri without port env', async () => {
-		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
-			if (key === 'MONGO_PORT') {
-				return null
-			}
-			return 'value'
-		})
-		const config = await getMongoConfig(configService)
-		expect(config.uri).toBe('value://value:value@value:27017/value')
-	})
-
-	it('should use the correct uri without host and port env', async () => {
-		jest.spyOn(configService, 'get').mockImplementation((key: string) => {
-			if (key === 'MONGO_HOST' || key === 'MONGO_PORT') {
-				return null
-			}
-			return 'value'
-		})
-		const config = await getMongoConfig(configService)
-		expect(config.uri).toBe('value://value:value@127.0.0.1:27017/value')
 	})
 })

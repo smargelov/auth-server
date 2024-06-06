@@ -28,11 +28,11 @@ describe('CleanResponseInterceptor', () => {
 		} as CallHandler
 
 		interceptor.intercept(context, next).subscribe((data) => {
-			expect('_id' in data ? data._id : undefined).toBeUndefined()
-			expect('__v' in data ? data.__v : undefined).toBeUndefined()
-			expect('createdAt' in data ? data.createdAt : undefined).toBeUndefined()
-			expect('updatedAt' in data ? data.updatedAt : undefined).toBeUndefined()
-			expect('otherField' in data ? data.otherField : undefined).toBe('otherValue')
+			expect(data).not.toHaveProperty('_id')
+			expect(data).not.toHaveProperty('__v')
+			expect(data).not.toHaveProperty('createdAt')
+			expect(data).not.toHaveProperty('updatedAt')
+			expect(data).toHaveProperty('otherField', 'otherValue')
 		})
 	})
 
@@ -67,14 +67,14 @@ describe('CleanResponseInterceptor', () => {
 			if (Array.isArray(data)) {
 				data.forEach((item) => {
 					if (typeof item === 'object') {
-						expect('_id' in item ? item._id : undefined).toBeUndefined()
-						expect('__v' in item ? item.__v : undefined).toBeUndefined()
-						expect('createdAt' in item ? item.createdAt : undefined).toBeUndefined()
-						expect('updatedAt' in item ? item.updatedAt : undefined).toBeUndefined()
+						expect(item).not.toHaveProperty('_id')
+						expect(item).not.toHaveProperty('__v')
+						expect(item).not.toHaveProperty('createdAt')
+						expect(item).not.toHaveProperty('updatedAt')
 					}
 				})
-				expect('otherField' in data[0] ? data[0].otherField : undefined).toBe('otherValue1')
-				expect('otherField' in data[1] ? data[1].otherField : undefined).toBe('otherValue2')
+				expect(data[0]).toHaveProperty('otherField', 'otherValue1')
+				expect(data[1]).toHaveProperty('otherField', 'otherValue2')
 			}
 		})
 	})

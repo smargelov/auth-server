@@ -62,7 +62,6 @@ export class UserService {
 	private async confirmEmailHandler(email: string): Promise<string | HttpException> {
 		const emailConfirmationToken = uuidv4()
 		await this.mailService.sendConfirmEmail(email, emailConfirmationToken)
-		// return result ? { ...user, emailConfirmationToken, isConfirmedEmail: false } : user
 		return emailConfirmationToken
 	}
 

@@ -10,7 +10,6 @@ export class LinkController {
 	constructor(
 		private readonly linkService: LinkService,
 		private readonly cookieService: CookieService,
-		private readonly authService: AuthService,
 		private readonly configService: ConfigService
 	) {}
 
