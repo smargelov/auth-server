@@ -8,12 +8,14 @@ import { RoleModule } from '../role/role.module'
 import { PasswordService } from './password.service'
 import { JwtModule } from '@nestjs/jwt'
 import { MailModule } from '../mail/mail.module'
+import { TokenModule } from '../token/token.module'
 
 @Module({
 	imports: [
 		JwtModule,
 		RoleModule,
 		MailModule,
+		TokenModule,
 		ConfigModule,
 		TypegooseModule.forFeature([
 			{

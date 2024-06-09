@@ -11,41 +11,24 @@ import {
 	RESET_PASSWORD_LINK_SENT
 } from './auth.constants'
 import { UserModel } from '../user/user.model'
-import { Response } from 'express'
-import * as ms from 'ms'
+import { RegisterDto } from './dto/register.dto'
+import { TokenService } from '../token/token.service'
 
 @Injectable()
 export class AuthService {
 	constructor(
 		private readonly jwtService: JwtService,
 		private readonly userService: UserService,
+		private readonly tokenService: TokenService,
 		private readonly configService: ConfigService
 	) {}
-
-	async createTokens(user: DocumentType<UserModel>): Promise<TokensResponse> {
-		const accessPayload = {
-			id: user._id.toString(),
-			role: user.role,
-			email: user.email,
-			displayName: user.displayName,
-			isConfirmedEmail: user.isConfirmedEmail,
-			isActive: user.isActive
-		}
-		const refreshPayload = { id: user._id.toString() }
-		return {
-			accessToken: this.jwtService.sign(accessPayload),
-			refreshToken: this.jwtService.sign(refreshPayload, {
-				expiresIn: this.configService.get<string>('jwt.refreshTokenExpiresIn')
-			})
-		}
-	}
 
 	async login(user: LoginDto): Promise<TokensResponse | HttpException> {
 		const validatedUser = await this.userService.validateUser(user.email, user.password)
 		if (validatedUser instanceof HttpException) {
 			throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.NOT_FOUND)
 		}
-		return this.createTokens(validatedUser)
+		return this.tokenService.createTokens(validatedUser)
 	}
 
 	async refresh(refreshToken: string): Promise<TokensResponse | HttpException> {
@@ -57,7 +40,7 @@ export class AuthService {
 				throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
 			}
 
-			return this.createTokens(user)
+			return this.tokenService.createTokens(user)
 		} catch (err) {
 			if (err instanceof TokenExpiredError) {
 				throw new HttpException(
@@ -78,5 +61,13 @@ export class AuthService {
 		await this.userService.updateResetPasswordTokenById(user._id.toString(), resetPasswordToken)
 
 		return { message: RESET_PASSWORD_LINK_SENT }
+	}
+
+	async register(dto: RegisterDto): Promise<TokensResponse | HttpException> {
+		const user = await this.userService.create(dto)
+		if (user instanceof HttpException) {
+			throw user
+		}
+		return this.tokenService.createTokens(user)
 	}
 }

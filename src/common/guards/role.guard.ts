@@ -6,67 +6,45 @@ import {
 	Injectable
 } from '@nestjs/common'
 import { Reflector } from '@nestjs/core'
-import { JwtService, TokenExpiredError } from '@nestjs/jwt'
-import { ACCESS_DENIED, TOKEN_EXPIRED_OR_INVALID } from '../constants/common.constants'
+import { JwtService } from '@nestjs/jwt'
 import { ConfigService } from '@nestjs/config'
+import { AbstractBaseGuard } from './abstract-base.guard'
 import { MODULE_KEY } from '../decorators/module.decorator'
+import { ACCESS_DENIED } from '../constants/common.constants'
+import { JwtPayload, TokenService } from '../../token/token.service'
 
-interface JwtPayload {
+interface RoleJwtPayload extends JwtPayload {
 	role: string
-
-	[key: string]: string | number | boolean
 }
 
 @Injectable()
-export class RoleGuard implements CanActivate {
+export class RoleGuard extends AbstractBaseGuard implements CanActivate {
 	constructor(
 		private readonly reflector: Reflector,
-		private readonly jwtService: JwtService,
+		jwtService: JwtService,
+		tokenService: TokenService,
 		private readonly configService: ConfigService
-	) {}
+	) {
+		super(jwtService, tokenService)
+	}
 
 	canActivate(context: ExecutionContext): boolean {
 		const moduleName = this.reflector.get<string>(MODULE_KEY, context.getClass())
+		const roles = this.configService.get<string[]>(`access.modules.${moduleName}`) ?? []
 
-		const roles = this.configService.get(`access.modules.${moduleName}`) ?? []
-		if (!roles?.length) {
+		if (!roles.length) {
 			return true
 		}
 
-		const request = context.switchToHttp().getRequest()
-		const authorization = request.headers['authorization']
-		if (!authorization) {
-			throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
-		}
-
+		const authorization = this.getAuthorizationHeader(context)
 		const token = this.extractToken(authorization)
-		let payload: JwtPayload
-		try {
-			payload = this.jwtService.verify<JwtPayload>(token)
-		} catch (err) {
-			this.handleTokenError(err)
-		}
+		const payload = this.verifyToken<RoleJwtPayload>(token)
 
 		if (!this.hasRequiredRole(payload.role, roles)) {
 			throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
 		}
 
 		return true
-	}
-
-	private extractToken(authorization: string): string {
-		const parts = authorization.split(' ')
-		if (parts.length !== 2 || parts[0] !== 'Bearer') {
-			throw new HttpException(TOKEN_EXPIRED_OR_INVALID, HttpStatus.UNAUTHORIZED)
-		}
-		return parts[1]
-	}
-
-	private handleTokenError(err: unknown): void {
-		if (err instanceof TokenExpiredError) {
-			throw new HttpException(TOKEN_EXPIRED_OR_INVALID, HttpStatus.UNAUTHORIZED)
-		}
-		throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
 	}
 
 	private hasRequiredRole(userRole: string, requiredRoles: string[]): boolean {

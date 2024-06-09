@@ -119,7 +119,6 @@ describe('AuthService', () => {
 			email: 'test@test.com',
 			role: 'user',
 			isActive: true,
-			isConfirmedEmail: true,
 			passwordHash: 'hashedpassword'
 		}
 

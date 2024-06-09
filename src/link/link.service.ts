@@ -13,7 +13,7 @@ export class LinkService {
 			throw user
 		}
 		const confirmedUser = await this.userService.updateById(user._id.toString(), {
-			isConfirmedEmail: true,
+			isActive: true,
 			emailConfirmationToken: null
 		})
 		if (confirmedUser instanceof HttpException) {

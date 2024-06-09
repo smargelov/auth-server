@@ -5,53 +5,30 @@ import {
 	HttpStatus,
 	Injectable
 } from '@nestjs/common'
-import { JwtService, TokenExpiredError } from '@nestjs/jwt'
-import { ACCESS_DENIED, TOKEN_EXPIRED_OR_INVALID } from '../constants/common.constants'
+import { JwtService } from '@nestjs/jwt'
+import { AbstractBaseGuard } from './abstract-base.guard'
+import { ACCESS_DENIED } from '../constants/common.constants'
+import { JwtPayload, TokenService } from '../../token/token.service'
 
-interface JwtPayload {
+interface ActiveJwtPayload extends JwtPayload {
 	isActive: boolean
-
-	[key: string]: string | number | boolean
 }
 
 @Injectable()
-export class ActiveGuard implements CanActivate {
-	constructor(private readonly jwtService: JwtService) {}
+export class ActiveGuard extends AbstractBaseGuard implements CanActivate {
+	constructor(jwtService: JwtService, tokenService: TokenService) {
+		super(jwtService, tokenService)
+	}
 
 	canActivate(context: ExecutionContext): boolean {
-		const request = context.switchToHttp().getRequest()
-		const authorization = request.headers['authorization']
-		if (!authorization) {
-			throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
-		}
-
+		const authorization = this.getAuthorizationHeader(context)
 		const token = this.extractToken(authorization)
-		let payload: JwtPayload
-		try {
-			payload = this.jwtService.verify<JwtPayload>(token)
-		} catch (err) {
-			this.handleTokenError(err)
-		}
+		const payload = this.verifyToken<ActiveJwtPayload>(token)
 
 		if (!payload.isActive) {
 			throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
 		}
 
 		return true
-	}
-
-	private extractToken(authorization: string): string {
-		const parts = authorization.split(' ')
-		if (parts.length !== 2 || parts[0] !== 'Bearer') {
-			throw new HttpException(TOKEN_EXPIRED_OR_INVALID, HttpStatus.UNAUTHORIZED)
-		}
-		return parts[1]
-	}
-
-	private handleTokenError(err: unknown): void {
-		if (err instanceof TokenExpiredError) {
-			throw new HttpException(TOKEN_EXPIRED_OR_INVALID, HttpStatus.UNAUTHORIZED)
-		}
-		throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
 	}
 }

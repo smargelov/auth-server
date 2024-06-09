@@ -5,3 +5,6 @@ export const FAILED_TO_CREATE_USER = 'Failed to create user'
 export const FAILED_TO_UPDATE_USER = 'Failed to update user'
 export const FILED_PASSWORD_COMPARE = 'Failed to compare passwords'
 export const FILED_EMAIL_CONFIRMATION_TOKEN = 'Email confirmation token is invalid'
+export const FORBIDDEN_TO_DELETE_LAST_ADMIN = 'It is forbidden to delete the last administrator'
+export const FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD =
+	'It is forbidden to change the last administrator field'

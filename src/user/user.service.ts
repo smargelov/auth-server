@@ -15,6 +15,8 @@ import {
 	FAILED_TO_UPDATE_USER,
 	FILED_EMAIL_CONFIRMATION_TOKEN,
 	FILED_PASSWORD_COMPARE,
+	FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD,
+	FORBIDDEN_TO_DELETE_LAST_ADMIN,
 	USER_ALREADY_EXISTS,
 	USER_DELETED_MESSAGE,
 	USER_NOT_FOUND
@@ -70,6 +72,13 @@ export class UserService {
 		return !!user
 	}
 
+	private async isLastAdminUser(_id: string): Promise<boolean> {
+		const adminUsers = await this.userModel
+			.find({ role: this.configService.get('roles.admin') })
+			.exec()
+		return adminUsers.length === 1 && adminUsers[0]._id.toString() === _id
+	}
+
 	async resetPasswordHandler(email: string): Promise<string> {
 		const resetPasswordToken = uuidv4()
 		await this.mailService.sendResetPassword(email, resetPasswordToken)
@@ -106,8 +115,7 @@ export class UserService {
 			return true
 		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
-		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
+		const userWithConfirmEmail = { ...user, isActive: true }
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			console.log(`Failed to create user with email ${dto.email}`)
@@ -128,7 +136,7 @@ export class UserService {
 		}
 		const user = await this.getUserWithPasswordHash(dto)
 		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
-		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
+		const userWithConfirmEmail = { ...user, isActive: false, emailConfirmationToken }
 		const createdUser = await this.userModel.create(userWithConfirmEmail)
 		if (!createdUser) {
 			throw new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
@@ -194,6 +202,10 @@ export class UserService {
 	}
 
 	async deleteById(id: string): Promise<{ message: string } | HttpException> {
+		const isLastAdmin = await this.isLastAdminUser(id)
+		if (isLastAdmin) {
+			throw new HttpException(FORBIDDEN_TO_DELETE_LAST_ADMIN, HttpStatus.FORBIDDEN)
+		}
 		const deletedUser = await this.userModel.findOneAndDelete({ _id: id }).exec()
 		if (!deletedUser) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -208,11 +220,22 @@ export class UserService {
 		if (dto.role) {
 			await this.checkRoleExists(dto.role)
 		}
+		const isLastAdmin = await this.isLastAdminUser(id)
+		if (
+			(isLastAdmin && dto.role !== this.configService.get('roles.admin')) ||
+			dto.isActive === false ||
+			dto.email
+		) {
+			throw new HttpException(FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD, HttpStatus.FORBIDDEN)
+		}
 		const user = await this.getUserWithPasswordHash(dto)
-		const emailConfirmationToken = await this.confirmEmailHandler(user.email)
-		const userWithConfirmEmail = { ...user, isConfirmedEmail: false, emailConfirmationToken }
+		let updatedUserDate = { ...user, emailConfirmationToken: null }
+		if (dto.email) {
+			const emailConfirmationToken = await this.confirmEmailHandler(user.email)
+			updatedUserDate = { ...user, isActive: false, emailConfirmationToken }
+		}
 		const updatedUser = await this.userModel
-			.findOneAndUpdate({ _id: id }, userWithConfirmEmail, { new: true })
+			.findOneAndUpdate({ _id: id }, updatedUserDate, { new: true })
 			.exec()
 		if (!updatedUser) {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)

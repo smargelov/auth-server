@@ -22,6 +22,8 @@ import { GetResetPasswordLinkDto } from './dto/get-reset-password-link.dto'
 import { CookieService } from '../cookie/cookie.service'
 import { UserService } from '../user/user.service'
 import { TokensResponse } from './responses/tokens.response'
+import { RegisterDto } from './dto/register.dto'
+import { TokenService } from '../token/token.service'
 
 @UsePipes(new ValidationPipe())
 @Controller('auth')
@@ -29,7 +31,8 @@ export class AuthController {
 	constructor(
 		private readonly authService: AuthService,
 		private readonly cookieService: CookieService,
-		private readonly userService: UserService
+		private readonly userService: UserService,
+		private readonly tokenService: TokenService
 	) {}
 
 	private async tokensHandler(tokens: TokensResponse | HttpException, response: Response) {
@@ -78,9 +81,18 @@ export class AuthController {
 		if (result instanceof HttpException) {
 			throw result
 		}
-		const tokens = await this.authService.createTokens(result)
+		const tokens = await this.tokenService.createTokens(result)
 		const answer = await this.tokensHandler(tokens, response)
 		response.clearCookie('canChangePasswordForEmail')
 		return { ...answer, message: PASSWORD_CHANGED_SUCCESSFULLY }
 	}
+
+	@Post('register')
+	async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
+		const tokens = await this.authService.register(dto)
+		return this.tokensHandler(tokens, response)
+	}
+
+	@Patch()
+	async update(@Body() dto: RegisterDto) {}
 }

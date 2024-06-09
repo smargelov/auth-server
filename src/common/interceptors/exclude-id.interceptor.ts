@@ -2,10 +2,11 @@ import { Injectable, NestInterceptor, ExecutionContext, CallHandler } from '@nes
 import { Observable } from 'rxjs'
 
 @Injectable()
+// todo удалить
 export class ExcludeIdInterceptor implements NestInterceptor {
 	intercept(context: ExecutionContext, next: CallHandler): Observable<unknown> {
 		const request = context.switchToHttp().getRequest()
-		if (request.body && request.body._id) {
+		if (request?.body?._id) {
 			delete request.body._id
 		}
 		return next.handle()

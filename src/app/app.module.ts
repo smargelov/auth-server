@@ -14,6 +14,7 @@ import configuration from '../configs/configuration'
 import { MailModule } from '../mail/mail.module'
 import { LinkModule } from '../link/link.module'
 import { CookieModule } from '../cookie/cookie.module'
+import { TokenModule } from '../token/token.module'
 
 @Module({
 	imports: [
@@ -39,17 +40,19 @@ import { CookieModule } from '../cookie/cookie.module'
 		AuthModule,
 		MailModule,
 		LinkModule,
-		CookieModule
+		CookieModule,
+		TokenModule
 	],
-	providers: [
-		{
-			provide: APP_INTERCEPTOR,
-			useClass: ExcludeIdInterceptor
-		},
-		AppInitializer,
+	providers: [AppInitializer, RoleGuard, Reflector],
+	exports: [
+		JwtModule,
 		RoleGuard,
-		Reflector
-	],
-	exports: [JwtModule, RoleGuard, UserModule, AuthModule, MailModule, LinkModule, CookieModule]
+		UserModule,
+		AuthModule,
+		MailModule,
+		LinkModule,
+		CookieModule,
+		TokenModule
+	]
 })
 export class AppModule {}

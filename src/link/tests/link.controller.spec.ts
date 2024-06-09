@@ -76,7 +76,6 @@ describe('LinkController', () => {
 				email: 'test@example.com',
 				role: 'user',
 				isActive: true,
-				isConfirmedEmail: true,
 				passwordHash: 'hashedpassword'
 			}
 			jest.spyOn(linkService, 'setCanChangePassword').mockResolvedValue(user)

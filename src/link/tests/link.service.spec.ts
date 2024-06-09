@@ -37,20 +37,17 @@ describe('LinkService', () => {
 				email: 'test@example.com',
 				role: 'user',
 				isActive: true,
-				isConfirmedEmail: false,
 				passwordHash: 'hashedpassword'
 			} as unknown as DocumentType<UserModel>
 
 			jest.spyOn(userService, 'findUserByConfirmEmailToken').mockResolvedValue(user)
 			jest.spyOn(userService, 'updateById').mockResolvedValue({
 				...user,
-				isConfirmedEmail: true,
 				emailConfirmationToken: null
 			} as unknown as DocumentType<UserModel>)
 
 			const result = await linkService.confirmEmail('validToken')
 
-			expect((result as DocumentType<UserModel>).isConfirmedEmail).toBe(true)
 			expect((result as DocumentType<UserModel>).emailConfirmationToken).toBe(null)
 		})
 
@@ -67,7 +64,6 @@ describe('LinkService', () => {
 				email: 'test@example.com',
 				role: 'user',
 				isActive: true,
-				isConfirmedEmail: false,
 				passwordHash: 'hashedpassword'
 			} as unknown as DocumentType<UserModel>
 
@@ -86,7 +82,6 @@ describe('LinkService', () => {
 				email: 'test@example.com',
 				role: 'user',
 				isActive: true,
-				isConfirmedEmail: true,
 				passwordHash: 'hashedpassword'
 			} as unknown as DocumentType<UserModel>
 
@@ -116,7 +111,6 @@ describe('LinkService', () => {
 				email: 'test@example.com',
 				role: 'user',
 				isActive: true,
-				isConfirmedEmail: true,
 				passwordHash: 'hashedpassword'
 			} as unknown as DocumentType<UserModel>
 
