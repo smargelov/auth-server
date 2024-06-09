@@ -1,26 +1,16 @@
-import { JwtService, TokenExpiredError } from '@nestjs/jwt'
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
-import type { DocumentType } from '@typegoose/typegoose/lib/types'
 import { UserService } from '../user/user.service'
 import { LoginDto } from './dto/login.dto'
 import { TokensResponse } from './responses/tokens.response'
-import {
-	AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID,
-	AUTH_VALIDATE_ERROR_MESSAGE,
-	RESET_PASSWORD_LINK_SENT
-} from './auth.constants'
-import { UserModel } from '../user/user.model'
+import { AUTH_VALIDATE_ERROR_MESSAGE, RESET_PASSWORD_LINK_SENT } from './auth.constants'
 import { RegisterDto } from './dto/register.dto'
 import { TokenService } from '../token/token.service'
 
 @Injectable()
 export class AuthService {
 	constructor(
-		private readonly jwtService: JwtService,
 		private readonly userService: UserService,
-		private readonly tokenService: TokenService,
-		private readonly configService: ConfigService
+		private readonly tokenService: TokenService
 	) {}
 
 	async login(user: LoginDto): Promise<TokensResponse | HttpException> {
@@ -32,24 +22,9 @@ export class AuthService {
 	}
 
 	async refresh(refreshToken: string): Promise<TokensResponse | HttpException> {
-		try {
-			const decoded = this.jwtService.verify<{ id: string }>(refreshToken)
-
-			const user = await this.userService.findUserById(decoded.id)
-			if (user instanceof HttpException) {
-				throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
-			}
-
-			return this.tokenService.createTokens(user)
-		} catch (err) {
-			if (err instanceof TokenExpiredError) {
-				throw new HttpException(
-					AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID,
-					HttpStatus.UNAUTHORIZED
-				)
-			}
-			throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.UNAUTHORIZED)
-		}
+		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
+		const user = await this.userService.findUserById(id)
+		return this.tokenService.createTokens(user)
 	}
 
 	async getResetPasswordLink(email: string): Promise<{ message: string } | HttpException> {

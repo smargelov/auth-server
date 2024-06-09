@@ -1,4 +1,4 @@
-import { Injectable, HttpException, HttpStatus } from '@nestjs/common'
+import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { JwtService, TokenExpiredError } from '@nestjs/jwt'
 import { ACCESS_DENIED, TOKEN_EXPIRED_OR_INVALID } from '../common/constants/common.constants'
 import { UserModel } from '../user/user.model'
@@ -55,5 +55,13 @@ export class TokenService {
 			throw new HttpException(TOKEN_EXPIRED_OR_INVALID, HttpStatus.UNAUTHORIZED)
 		}
 		return parts[1]
+	}
+
+	getIdFromRefreshToken(refreshToken: string): string {
+		const decoded = this.jwtService.verify<{ id: string }>(refreshToken)
+		if (!decoded.id) {
+			throw new HttpException(ACCESS_DENIED, HttpStatus.FORBIDDEN)
+		}
+		return decoded.id
 	}
 }

@@ -25,6 +25,8 @@ import { ConfigService } from '@nestjs/config'
 import { MailService } from '../mail/mail.service'
 import { v4 as uuidv4 } from 'uuid'
 import { LoginDto } from '../auth/dto/login.dto'
+import { TokenService } from '../token/token.service'
+import { TokensResponse } from '../auth/responses/tokens.response'
 
 type ReplacePasswordWithHash<T extends CreateUserDto | UpdateUserDto> = Omit<T, 'password'> & {
 	passwordHash: string
@@ -37,6 +39,7 @@ export class UserService {
 		private readonly roleService: RoleService,
 		private readonly passwordService: PasswordService,
 		private readonly mailService: MailService,
+		private readonly tokenService: TokenService,
 		private readonly configService: ConfigService
 	) {}
 
@@ -144,7 +147,7 @@ export class UserService {
 		return createdUser
 	}
 
-	async findUserById(id: string): Promise<DocumentType<UserModel> | HttpException> {
+	async findUserById(id: string): Promise<DocumentType<UserModel>> {
 		const user = await this.userModel.findOne({ _id: id }).exec()
 		if (!user) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -222,9 +225,10 @@ export class UserService {
 		}
 		const isLastAdmin = await this.isLastAdminUser(id)
 		if (
-			(isLastAdmin && dto.role !== this.configService.get('roles.admin')) ||
-			dto.isActive === false ||
-			dto.email
+			isLastAdmin &&
+			(dto.role !== this.configService.get('roles.admin') ||
+				dto.isActive === false ||
+				dto.email)
 		) {
 			throw new HttpException(FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD, HttpStatus.FORBIDDEN)
 		}
@@ -271,5 +275,33 @@ export class UserService {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
 		}
 		return updatedUser
+	}
+
+	async authUpdate(id: string, dto: UpdateUserDto): Promise<TokensResponse> {
+		const user = await this.findUserById(id)
+		const isLastAdmin = await this.isLastAdminUser(id)
+		if (isLastAdmin && dto.email) {
+			throw new HttpException(FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD, HttpStatus.FORBIDDEN)
+		}
+		const isPasswordSuccess = await this.passwordService.comparePassword(
+			dto.password,
+			user.passwordHash
+		)
+		if (!isPasswordSuccess) {
+			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.NOT_FOUND)
+		}
+		let userData = { ...dto, emailConfirmationToken: null }
+		if (dto.email) {
+			const emailConfirmationToken = await this.confirmEmailHandler(dto.email)
+			userData = { ...dto, isActive: false, emailConfirmationToken }
+		}
+		delete userData.password
+		const updatedUser = await this.userModel
+			.findOneAndUpdate({ _id: id }, { ...userData }, { new: true })
+			.exec()
+		if (!updatedUser) {
+			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
+		}
+		return this.tokenService.createTokens(updatedUser)
 	}
 }

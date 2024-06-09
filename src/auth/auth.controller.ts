@@ -24,6 +24,7 @@ import { UserService } from '../user/user.service'
 import { TokensResponse } from './responses/tokens.response'
 import { RegisterDto } from './dto/register.dto'
 import { TokenService } from '../token/token.service'
+import { UpdateDto } from './dto/update.dto'
 
 @UsePipes(new ValidationPipe())
 @Controller('auth')
@@ -43,6 +44,14 @@ export class AuthController {
 		return { accessToken: tokens.accessToken }
 	}
 
+	private async getRefreshTokenFromCookie(response: Response) {
+		const refreshToken = response.req.cookies['refreshToken']
+		if (!refreshToken) {
+			throw new HttpException(AUTH_NO_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
+		}
+		return refreshToken
+	}
+
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
 	async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
@@ -53,10 +62,7 @@ export class AuthController {
 	@Post('refresh')
 	@HttpCode(HttpStatus.OK)
 	async refresh(@Res({ passthrough: true }) response: Response) {
-		const refreshToken = response.req.cookies['refreshToken']
-		if (!refreshToken) {
-			throw new HttpException(AUTH_NO_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
-		}
+		const refreshToken = await this.getRefreshTokenFromCookie(response)
 		const tokens = await this.authService.refresh(refreshToken)
 		return this.tokensHandler(tokens, response)
 	}
@@ -93,6 +99,11 @@ export class AuthController {
 		return this.tokensHandler(tokens, response)
 	}
 
-	@Patch()
-	async update(@Body() dto: RegisterDto) {}
+	@Patch('update')
+	async update(@Body() dto: UpdateDto, @Res({ passthrough: true }) response: Response) {
+		const refreshToken = await this.getRefreshTokenFromCookie(response)
+		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
+		const tokens = await this.userService.authUpdate(id, dto)
+		return this.tokensHandler(tokens, response)
+	}
 }
