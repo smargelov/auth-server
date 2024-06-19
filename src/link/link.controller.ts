@@ -39,9 +39,6 @@ export class LinkController {
 		const frontendUrl = this.configService.get<string>('app.frontendUrl')
 		try {
 			const user = await this.linkService.setCanChangePassword(token)
-			if (user instanceof HttpException) {
-				throw user
-			}
 			await this.cookieService.setCanChangePasswordCookie(response, user.email)
 			return { url: `${frontendUrl}/change-password?success` }
 		} catch (error) {

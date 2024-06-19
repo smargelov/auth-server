@@ -19,7 +19,7 @@ export class MailService {
 		return { baseUrl, brand }
 	}
 
-	async sendConfirmEmail(email: string, token: string): Promise<boolean | HttpException> {
+	async sendConfirmEmail(email: string, token: string): Promise<boolean> {
 		try {
 			const result = this.checkBaseUrlAndBrand()
 			if (!result) {
@@ -42,7 +42,7 @@ export class MailService {
 		}
 	}
 
-	async sendResetPassword(email: string, token: string): Promise<boolean | HttpException> {
+	async sendResetPassword(email: string, token: string): Promise<boolean> {
 		try {
 			const result = this.checkBaseUrlAndBrand()
 			if (!result) {

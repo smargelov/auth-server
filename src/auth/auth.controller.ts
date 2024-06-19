@@ -70,11 +70,7 @@ export class AuthController {
 	@Post('get-reset-password-link')
 	@HttpCode(HttpStatus.OK)
 	async getResetPasswordLink(@Body() dto: GetResetPasswordLinkDto) {
-		const result = await this.authService.getResetPasswordLink(dto.email)
-		if (result instanceof HttpException) {
-			throw result
-		}
-		return result
+		return await this.authService.getResetPasswordLink(dto.email)
 	}
 
 	@Patch('change-password')
@@ -84,9 +80,6 @@ export class AuthController {
 			throw new HttpException(PASSWORD_CHANGED_NOT_ALLOWED, HttpStatus.BAD_REQUEST)
 		}
 		const result = await this.userService.changePassword(dto)
-		if (result instanceof HttpException) {
-			throw result
-		}
 		const tokens = await this.tokenService.createTokens(result)
 		const answer = await this.tokensHandler(tokens, response)
 		response.clearCookie('canChangePasswordForEmail')

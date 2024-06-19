@@ -13,36 +13,27 @@ export class AuthService {
 		private readonly tokenService: TokenService
 	) {}
 
-	async login(user: LoginDto): Promise<TokensResponse | HttpException> {
+	async login(user: LoginDto): Promise<TokensResponse> {
 		const validatedUser = await this.userService.validateUser(user.email, user.password)
-		if (validatedUser instanceof HttpException) {
-			throw new HttpException(AUTH_VALIDATE_ERROR_MESSAGE, HttpStatus.NOT_FOUND)
-		}
 		return this.tokenService.createTokens(validatedUser)
 	}
 
-	async refresh(refreshToken: string): Promise<TokensResponse | HttpException> {
+	async refresh(refreshToken: string): Promise<TokensResponse> {
 		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
 		const user = await this.userService.findUserById(id)
 		return this.tokenService.createTokens(user)
 	}
 
-	async getResetPasswordLink(email: string): Promise<{ message: string } | HttpException> {
+	async getResetPasswordLink(email: string): Promise<{ message: string }> {
 		const user = await this.userService.findUserByEmail(email)
-		if (user instanceof HttpException) {
-			throw user
-		}
 		const resetPasswordToken = await this.userService.resetPasswordHandler(user.email)
 		await this.userService.updateResetPasswordTokenById(user._id.toString(), resetPasswordToken)
 
 		return { message: RESET_PASSWORD_LINK_SENT }
 	}
 
-	async register(dto: RegisterDto): Promise<TokensResponse | HttpException> {
+	async register(dto: RegisterDto): Promise<TokensResponse> {
 		const user = await this.userService.create(dto)
-		if (user instanceof HttpException) {
-			throw user
-		}
 		return this.tokenService.createTokens(user)
 	}
 }

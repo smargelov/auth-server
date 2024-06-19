@@ -56,7 +56,7 @@ export class UserService {
 		return { ...rest, passwordHash }
 	}
 
-	private async checkRoleExists(role: CreateUserDto['role']): Promise<boolean | HttpException> {
+	private async checkRoleExists(role: CreateUserDto['role']): Promise<boolean> {
 		const roleExists = await this.roleService.roleExists(role)
 		if (!roleExists) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -64,7 +64,7 @@ export class UserService {
 		return !!roleExists
 	}
 
-	private async confirmEmailHandler(email: string): Promise<string | HttpException> {
+	private async confirmEmailHandler(email: string): Promise<string> {
 		const emailConfirmationToken = uuidv4()
 		await this.mailService.sendConfirmEmail(email, emailConfirmationToken)
 		return emailConfirmationToken
@@ -88,10 +88,7 @@ export class UserService {
 		return resetPasswordToken
 	}
 
-	async validateUser(
-		email: string,
-		password: string
-	): Promise<DocumentType<UserModel> | HttpException> {
+	async validateUser(email: string, password: string): Promise<DocumentType<UserModel>> {
 		const user = await this.userModel.findOne({ email }).exec()
 		if (!user) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -127,7 +124,7 @@ export class UserService {
 		return !!createdUser
 	}
 
-	async create(dto: CreateUserDto): Promise<DocumentType<UserModel> | HttpException> {
+	async create(dto: CreateUserDto): Promise<DocumentType<UserModel>> {
 		if (!dto.role) {
 			dto.role = this.configService.get('roles.user')
 		} else {
@@ -155,7 +152,7 @@ export class UserService {
 		return user
 	}
 
-	async findUserByEmail(email: string): Promise<DocumentType<UserModel> | HttpException> {
+	async findUserByEmail(email: string): Promise<DocumentType<UserModel>> {
 		const user = await this.userModel.findOne({ email }).exec()
 		if (!user) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -165,7 +162,7 @@ export class UserService {
 
 	async findUserByConfirmEmailToken(
 		emailConfirmationToken: string
-	): Promise<DocumentType<UserModel> | HttpException> {
+	): Promise<DocumentType<UserModel>> {
 		const user = await this.userModel.findOne({ emailConfirmationToken }).exec()
 		if (!user) {
 			throw new HttpException(FILED_EMAIL_CONFIRMATION_TOKEN, HttpStatus.NOT_FOUND)
@@ -175,7 +172,7 @@ export class UserService {
 
 	async findUserByResetPasswordToken(
 		resetPasswordToken: string
-	): Promise<DocumentType<UserModel> | HttpException> {
+	): Promise<DocumentType<UserModel>> {
 		const user = await this.userModel
 			.findOne({
 				resetPasswordToken
@@ -204,7 +201,7 @@ export class UserService {
 		return { items, meta: { total, limit, offset } }
 	}
 
-	async deleteById(id: string): Promise<{ message: string } | HttpException> {
+	async deleteById(id: string): Promise<{ message: string }> {
 		const isLastAdmin = await this.isLastAdminUser(id)
 		if (isLastAdmin) {
 			throw new HttpException(FORBIDDEN_TO_DELETE_LAST_ADMIN, HttpStatus.FORBIDDEN)
@@ -216,10 +213,7 @@ export class UserService {
 		return { message: USER_DELETED_MESSAGE }
 	}
 
-	async updateById(
-		id: string,
-		dto: UpdateUserDto
-	): Promise<DocumentType<UserModel> | HttpException> {
+	async updateById(id: string, dto: UpdateUserDto): Promise<DocumentType<UserModel>> {
 		if (dto.role) {
 			await this.checkRoleExists(dto.role)
 		}
@@ -262,7 +256,7 @@ export class UserService {
 		return updatedUser
 	}
 
-	async changePassword(dto: LoginDto): Promise<DocumentType<UserModel> | HttpException> {
+	async changePassword(dto: LoginDto): Promise<DocumentType<UserModel>> {
 		const isUser = await this.userExists(dto.email)
 		if (!isUser) {
 			throw new HttpException(USER_NOT_FOUND, HttpStatus.NOT_FOUND)
