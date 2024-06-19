@@ -8,6 +8,7 @@ import { RoleGuard } from '../../common/guards/role.guard'
 import { ActiveGuard } from '../../common/guards/active.guard'
 import { Reflector } from '@nestjs/core'
 import { ConfigService } from '@nestjs/config'
+import { TokenService } from '../../token/token.service'
 
 describe('RoleController', () => {
 	let controller: RoleController
@@ -31,6 +32,14 @@ describe('RoleController', () => {
 					provide: JwtService,
 					useValue: {
 						verify: jest.fn().mockResolvedValue(true)
+					}
+				},
+				{
+					provide: TokenService,
+					useValue: {
+						createAccessToken: jest.fn(),
+						createRefreshToken: jest.fn(),
+						verifyToken: jest.fn()
 					}
 				},
 				RoleGuard,

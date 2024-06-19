@@ -5,16 +5,19 @@ import { CookieService } from '../../cookie/cookie.service'
 import { UserService } from '../../user/user.service'
 import { LoginDto } from '../dto/login.dto'
 import { GetResetPasswordLinkDto } from '../dto/get-reset-password-link.dto'
+import { RegisterDto } from '../dto/register.dto'
+import { UpdateDto } from '../dto/update.dto'
 import { HttpException } from '@nestjs/common'
-import { TokensResponse } from '../responses/tokens.response'
 import { Response } from 'express'
 import { PASSWORD_CHANGED_SUCCESSFULLY } from '../auth.constants'
+import { TokenService } from '../../token/token.service'
 
 describe('AuthController', () => {
 	let authController: AuthController
 	let authService: AuthService
 	let cookieService: CookieService
 	let userService: UserService
+	let tokenService: TokenService
 
 	beforeAll(async () => {
 		const module: TestingModule = await Test.createTestingModule({
@@ -30,7 +33,7 @@ describe('AuthController', () => {
 							.fn()
 							.mockResolvedValue({ accessToken: 'access', refreshToken: 'refresh' }),
 						getResetPasswordLink: jest.fn(),
-						createTokens: jest.fn()
+						register: jest.fn()
 					}
 				},
 				{
@@ -42,7 +45,17 @@ describe('AuthController', () => {
 				{
 					provide: UserService,
 					useValue: {
-						changePassword: jest.fn()
+						changePassword: jest.fn(),
+						authUpdate: jest.fn()
+					}
+				},
+				{
+					provide: TokenService,
+					useValue: {
+						createTokens: jest
+							.fn()
+							.mockResolvedValue({ accessToken: 'access', refreshToken: 'refresh' }),
+						getIdFromRefreshToken: jest.fn().mockReturnValue('id')
 					}
 				}
 			]
@@ -52,6 +65,7 @@ describe('AuthController', () => {
 		authService = module.get<AuthService>(AuthService)
 		cookieService = module.get<CookieService>(CookieService)
 		userService = module.get<UserService>(UserService)
+		tokenService = module.get<TokenService>(TokenService)
 	})
 
 	afterEach(() => {
@@ -162,7 +176,7 @@ describe('AuthController', () => {
 		} as unknown as Response
 
 		jest.spyOn(userService, 'changePassword').mockResolvedValue('user' as any)
-		jest.spyOn(authService, 'createTokens').mockResolvedValue({
+		jest.spyOn(tokenService, 'createTokens').mockResolvedValue({
 			accessToken: 'access',
 			refreshToken: 'refresh'
 		})
@@ -170,7 +184,7 @@ describe('AuthController', () => {
 		const result = await authController.changePassword(dto, response)
 
 		expect(userService.changePassword).toHaveBeenCalledWith(dto)
-		expect(authService.createTokens).toHaveBeenCalledWith('user')
+		expect(tokenService.createTokens).toHaveBeenCalledWith('user')
 		expect(cookieService.setRefreshTokenCookie).toHaveBeenCalledWith(response, 'refresh')
 		expect(response.clearCookie).toHaveBeenCalledWith('canChangePasswordForEmail')
 		expect(result).toEqual({ accessToken: 'access', message: PASSWORD_CHANGED_SUCCESSFULLY })
@@ -204,5 +218,95 @@ describe('AuthController', () => {
 		jest.spyOn(userService, 'changePassword').mockRejectedValue(new HttpException('Error', 400))
 
 		await expect(authController.changePassword(dto, response)).rejects.toThrow(HttpException)
+	})
+
+	it('should register user and return access token', async () => {
+		const dto = new RegisterDto()
+		dto.email = 'test@test.com'
+		dto.password = 'password'
+
+		const response = {
+			req: { cookies: {} },
+			cookie: jest.fn()
+		} as unknown as Response
+
+		jest.spyOn(authService, 'register').mockResolvedValue({
+			accessToken: 'access',
+			refreshToken: 'refresh'
+		})
+
+		const result = await authController.register(dto, response)
+
+		expect(authService.register).toHaveBeenCalledWith(dto)
+		expect(cookieService.setRefreshTokenCookie).toHaveBeenCalledWith(response, 'refresh')
+		expect(result).toEqual({ accessToken: 'access' })
+	})
+
+	it('should handle register exception', async () => {
+		const dto = new RegisterDto()
+		dto.email = 'test@test.com'
+		dto.password = 'password'
+
+		jest.spyOn(authService, 'register').mockRejectedValue(new HttpException('Error', 400))
+
+		const response = {
+			req: { cookies: {} },
+			cookie: jest.fn()
+		} as unknown as Response
+
+		await expect(authController.register(dto, response)).rejects.toThrow(HttpException)
+	})
+
+	it('should update user and return new access token', async () => {
+		const dto = new UpdateDto()
+		dto.displayName = 'newDisplayName'
+		dto.password = 'password'
+
+		const response = {
+			req: { cookies: { refreshToken: 'refresh' } },
+			cookie: jest.fn()
+		} as unknown as Response
+
+		jest.spyOn(tokenService, 'getIdFromRefreshToken').mockReturnValue('id')
+		jest.spyOn(userService, 'authUpdate').mockResolvedValue({
+			accessToken: 'access',
+			refreshToken: 'refresh'
+		})
+
+		const result = await authController.update(dto, response)
+
+		expect(tokenService.getIdFromRefreshToken).toHaveBeenCalledWith('refresh')
+		expect(userService.authUpdate).toHaveBeenCalledWith('id', dto)
+		expect(cookieService.setRefreshTokenCookie).toHaveBeenCalledWith(response, 'refresh')
+		expect(result).toEqual({ accessToken: 'access' })
+	})
+
+	it('should handle update exception when no refresh token provided', async () => {
+		const dto = new UpdateDto()
+		dto.displayName = 'newDisplayName'
+		dto.password = 'password'
+
+		const response = {
+			req: { cookies: {} },
+			cookie: jest.fn()
+		} as unknown as Response
+
+		await expect(authController.update(dto, response)).rejects.toThrow(HttpException)
+	})
+
+	it('should handle update exception when service throws error', async () => {
+		const dto = new UpdateDto()
+		dto.displayName = 'newDisplayName'
+		dto.password = 'password'
+
+		const response = {
+			req: { cookies: { refreshToken: 'refresh' } },
+			cookie: jest.fn()
+		} as unknown as Response
+
+		jest.spyOn(tokenService, 'getIdFromRefreshToken').mockReturnValue('id')
+		jest.spyOn(userService, 'authUpdate').mockRejectedValue(new HttpException('Error', 400))
+
+		await expect(authController.update(dto, response)).rejects.toThrow(HttpException)
 	})
 })

@@ -4,14 +4,12 @@ import { UserService } from '../user.service'
 import { CreateUserDto } from '../dto/create-user.dto'
 import { UpdateUserDto } from '../dto/update-user.dto'
 import { FindUserDto } from '../dto/find-user.dto'
-import { JwtService } from '@nestjs/jwt'
 import { RoleGuard } from '../../common/guards/role.guard'
 import { ActiveGuard } from '../../common/guards/active.guard'
 import { Reflector } from '@nestjs/core'
 import { ConfigService } from '@nestjs/config'
-import { UserModel } from '../user.model'
-import { DocumentType } from '@typegoose/typegoose/lib/types'
-import { HttpException } from '@nestjs/common'
+import { JwtService } from '@nestjs/jwt'
+import { TokenService } from '../../token/token.service'
 
 describe('UserController', () => {
 	let controller: UserController
@@ -31,16 +29,20 @@ describe('UserController', () => {
 						updateById: jest.fn().mockResolvedValue('updateById')
 					}
 				},
-				{
-					provide: JwtService,
-					useValue: {
-						verify: jest.fn().mockResolvedValue(true)
-					}
-				},
 				RoleGuard,
 				ActiveGuard,
 				Reflector,
-				ConfigService
+				ConfigService,
+				JwtService,
+				{
+					provide: TokenService,
+					useValue: {
+						createTokens: jest
+							.fn()
+							.mockResolvedValue({ accessToken: 'token', refreshToken: 'token' }),
+						getIdFromRefreshToken: jest.fn().mockReturnValue('testId')
+					}
+				}
 			]
 		}).compile()
 
@@ -63,9 +65,9 @@ describe('UserController', () => {
 	})
 
 	it('should find users', async () => {
-		const dto = new FindUserDto()
-		expect(await controller.find(dto)).toBe('find')
-		expect(service.find).toHaveBeenCalledWith(dto)
+		const query = new FindUserDto()
+		expect(await controller.find(query)).toBe('find')
+		expect(service.find).toHaveBeenCalledWith(query)
 	})
 
 	it('should get user by id', async () => {

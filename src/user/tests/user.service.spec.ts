@@ -1,59 +1,82 @@
 import { Test, TestingModule } from '@nestjs/testing'
-import { UserController } from '../user.controller'
 import { UserService } from '../user.service'
-import { CreateUserDto } from '../dto/create-user.dto'
-import { UpdateUserDto } from '../dto/update-user.dto'
-import { FindUserDto } from '../dto/find-user.dto'
-import { JwtService } from '@nestjs/jwt'
-import { RoleGuard } from '../../common/guards/role.guard'
-import { ActiveGuard } from '../../common/guards/active.guard'
-import { Reflector } from '@nestjs/core'
-import { ConfigService } from '@nestjs/config'
-import { DocumentType } from '@typegoose/typegoose/lib/types'
-import { HttpException } from '@nestjs/common'
+import { getModelToken } from 'nestjs-typegoose'
 import { UserModel } from '../user.model'
+import { RoleService } from '../../role/role.service'
+import { PasswordService } from '../password.service'
+import { MailService } from '../../mail/mail.service'
+import { ConfigService } from '@nestjs/config'
+import { TokenService } from '../../token/token.service'
+import { CreateUserDto } from '../dto/create-user.dto'
+import { HttpException, HttpStatus } from '@nestjs/common'
+import { DocumentType, ModelType } from '@typegoose/typegoose/lib/types'
+import { FAILED_TO_CREATE_USER, USER_ALREADY_EXISTS } from '../user.constants'
+import { Types } from 'mongoose'
+import { ROLE_NOT_FOUND } from '../../role/role.constants'
 
-describe('UserController', () => {
-	let controller: UserController
+describe('UserService', () => {
 	let service: UserService
+	let userModel: ModelType<UserModel>
+	let roleService: RoleService
+	let passwordService: PasswordService
+	let mailService: MailService
 
-	beforeAll(async () => {
+	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
-			controllers: [UserController],
 			providers: [
+				UserService,
 				{
-					provide: UserService,
+					provide: getModelToken('UserModel'),
 					useValue: {
+						findOne: jest.fn(),
 						create: jest.fn(),
+						countDocuments: jest.fn(),
 						find: jest.fn(),
-						findUserById: jest.fn(),
-						deleteById: jest.fn(),
-						updateById: jest.fn(),
-						findUserByEmail: jest.fn(),
-						findUserByConfirmEmailToken: jest.fn(),
-						findUserByResetPasswordToken: jest.fn(),
-						validateUser: jest.fn(),
-						initialize: jest.fn(),
-						resetPasswordHandler: jest.fn(),
-						updateResetPasswordTokenById: jest.fn(),
-						changePassword: jest.fn()
+						findOneAndDelete: jest.fn(),
+						findOneAndUpdate: jest.fn()
 					}
 				},
 				{
-					provide: JwtService,
+					provide: RoleService,
 					useValue: {
-						verify: jest.fn().mockResolvedValue(true)
+						roleExists: jest.fn()
 					}
 				},
-				RoleGuard,
-				ActiveGuard,
-				Reflector,
-				ConfigService
+				{
+					provide: PasswordService,
+					useValue: {
+						hashPassword: jest.fn(),
+						comparePassword: jest.fn()
+					}
+				},
+				{
+					provide: MailService,
+					useValue: {
+						sendConfirmEmail: jest.fn(),
+						sendResetPassword: jest.fn()
+					}
+				},
+				{
+					provide: ConfigService,
+					useValue: {
+						get: jest.fn()
+					}
+				},
+				{
+					provide: TokenService,
+					useValue: {
+						createTokens: jest.fn(),
+						getIdFromRefreshToken: jest.fn()
+					}
+				}
 			]
 		}).compile()
 
-		controller = module.get<UserController>(UserController)
 		service = module.get<UserService>(UserService)
+		userModel = module.get<ModelType<UserModel>>(getModelToken('UserModel'))
+		roleService = module.get<RoleService>(RoleService)
+		passwordService = module.get<PasswordService>(PasswordService)
+		mailService = module.get<MailService>(MailService)
 	})
 
 	afterEach(() => {
@@ -61,79 +84,71 @@ describe('UserController', () => {
 	})
 
 	it('should be defined', () => {
-		expect(controller).toBeDefined()
+		expect(service).toBeDefined()
 	})
 
-	it('should create a user', async () => {
-		const dto = new CreateUserDto()
-		jest.spyOn(service, 'create').mockResolvedValue(
-			'create' as unknown as DocumentType<UserModel>
-		)
-		expect(await controller.create(dto)).toBe('create')
-		expect(service.create).toHaveBeenCalledWith(dto)
-	})
+	describe('create', () => {
+		it('should create a user', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
 
-	it('should handle create user exception', async () => {
-		const dto = new CreateUserDto()
-		jest.spyOn(service, 'create').mockRejectedValue(new HttpException('Error', 400))
-		await expect(controller.create(dto)).rejects.toThrow(HttpException)
-	})
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(true)
+			jest.spyOn(passwordService, 'hashPassword').mockResolvedValue('hashedpassword')
+			jest.spyOn(mailService, 'sendConfirmEmail').mockResolvedValue(undefined)
 
-	it('should find users', async () => {
-		const dto = new FindUserDto()
-		jest.spyOn(service, 'find').mockResolvedValue('find' as unknown as any)
-		expect(await controller.find(dto)).toBe('find')
-		expect(service.find).toHaveBeenCalledWith(dto)
-	})
+			const createdUser = {
+				_id: new Types.ObjectId(),
+				email: 'test@test.com',
+				passwordHash: 'hashedpassword',
+				save: jest.fn().mockResolvedValue(true)
+			} as unknown as DocumentType<UserModel>
+			jest.spyOn(userModel, 'create').mockResolvedValue(createdUser as unknown as any)
 
-	it('should handle find users exception', async () => {
-		const dto = new FindUserDto()
-		jest.spyOn(service, 'find').mockRejectedValue(new HttpException('Error', 400))
-		await expect(controller.find(dto)).rejects.toThrow(HttpException)
-	})
+			expect(await service.create(dto)).toBe(createdUser)
+		})
 
-	it('should get user by id', async () => {
-		const id = 'testId'
-		jest.spyOn(service, 'findUserById').mockResolvedValue(
-			'findUserById' as unknown as DocumentType<UserModel>
-		)
-		expect(await controller.getOne(id)).toBe('findUserById')
-		expect(service.findUserById).toHaveBeenCalledWith(id)
-	})
+		it('should throw an error if user already exists', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
 
-	it('should handle get user by id exception', async () => {
-		const id = 'testId'
-		jest.spyOn(service, 'findUserById').mockRejectedValue(new HttpException('Error', 400))
-		await expect(controller.getOne(id)).rejects.toThrow(HttpException)
-	})
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(true)
 
-	it('should delete user by id', async () => {
-		const id = 'testId'
-		jest.spyOn(service, 'deleteById').mockResolvedValue({ message: 'deleteById' })
-		expect(await controller.delete(id)).toEqual({ message: 'deleteById' })
-		expect(service.deleteById).toHaveBeenCalledWith(id)
-	})
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
+			)
+		})
 
-	it('should handle delete user by id exception', async () => {
-		const id = 'testId'
-		jest.spyOn(service, 'deleteById').mockRejectedValue(new HttpException('Error', 400))
-		await expect(controller.delete(id)).rejects.toThrow(HttpException)
-	})
+		it('should throw an error if role does not exist', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
+			dto.role = 'non-existent-role'
 
-	it('should update user by id', async () => {
-		const id = 'testId'
-		const dto = new UpdateUserDto()
-		jest.spyOn(service, 'updateById').mockResolvedValue(
-			'updateById' as unknown as DocumentType<UserModel>
-		)
-		expect(await controller.update(id, dto)).toBe('updateById')
-		expect(service.updateById).toHaveBeenCalledWith(id, dto)
-	})
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(false)
 
-	it('should handle update user by id exception', async () => {
-		const id = 'testId'
-		const dto = new UpdateUserDto()
-		jest.spyOn(service, 'updateById').mockRejectedValue(new HttpException('Error', 400))
-		await expect(controller.update(id, dto)).rejects.toThrow(HttpException)
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
+			)
+		})
+
+		it('should throw an error if user creation fails', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
+
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(true)
+			jest.spyOn(passwordService, 'hashPassword').mockResolvedValue('hashedpassword')
+			jest.spyOn(mailService, 'sendConfirmEmail').mockResolvedValue(undefined)
+			jest.spyOn(userModel, 'create').mockResolvedValue(null)
+
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
+			)
+		})
 	})
 })
