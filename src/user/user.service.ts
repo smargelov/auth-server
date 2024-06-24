@@ -17,6 +17,7 @@ import {
 	FILED_PASSWORD_COMPARE,
 	FORBIDDEN_TO_CHANGE_LAST_ADMIN_FIELD,
 	FORBIDDEN_TO_DELETE_LAST_ADMIN,
+	FORBIDDEN_TO_DELETE_NOT_SELF_ACCOUNT,
 	USER_ALREADY_EXISTS,
 	USER_DELETED_MESSAGE,
 	USER_NOT_FOUND
@@ -27,6 +28,7 @@ import { v4 as uuidv4 } from 'uuid'
 import { LoginDto } from '../auth/dto/login.dto'
 import { TokenService } from '../token/token.service'
 import { TokensResponse } from '../auth/responses/tokens.response'
+import { DeleteDto } from '../auth/dto/delete.dto'
 
 type ReplacePasswordWithHash<T extends CreateUserDto | UpdateUserDto> = Omit<T, 'password'> & {
 	passwordHash: string
@@ -98,7 +100,7 @@ export class UserService {
 			user.passwordHash
 		)
 		if (!isPasswordSuccess) {
-			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.NOT_FOUND)
+			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.FORBIDDEN)
 		}
 		return user
 	}
@@ -282,7 +284,7 @@ export class UserService {
 			user.passwordHash
 		)
 		if (!isPasswordSuccess) {
-			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.NOT_FOUND)
+			throw new HttpException(FILED_PASSWORD_COMPARE, HttpStatus.FORBIDDEN)
 		}
 		let userData = { ...dto, emailConfirmationToken: null }
 		if (dto.email) {
@@ -297,5 +299,13 @@ export class UserService {
 			throw new HttpException(FAILED_TO_UPDATE_USER, HttpStatus.NOT_FOUND)
 		}
 		return this.tokenService.createTokens(updatedUser)
+	}
+
+	async authDelete(id: string, dto: DeleteDto): Promise<{ message: string }> {
+		const validatedUser = await this.validateUser(dto.email, dto.password)
+		if (validatedUser._id.toString() !== id) {
+			throw new HttpException(FORBIDDEN_TO_DELETE_NOT_SELF_ACCOUNT, HttpStatus.FORBIDDEN)
+		}
+		return this.deleteById(id)
 	}
 }

@@ -38,9 +38,7 @@ export class UserController {
 	constructor(private readonly userService: UserService) {}
 
 	@Post()
-	async create(
-		@Body() createUserDto: CreateUserDto
-	): Promise<DocumentType<UserModel> | HttpException> {
+	async create(@Body() createUserDto: CreateUserDto) {
 		return this.userService.create(createUserDto)
 	}
 

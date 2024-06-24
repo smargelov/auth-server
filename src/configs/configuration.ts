@@ -43,5 +43,10 @@ export default () => ({
 		user: process.env.MAIL_SERVICE_USER,
 		password: process.env.MAIL_SERVICE_PASSWORD,
 		from: process.env.MAIL_SERVICE_FROM
+	},
+	settings: {
+		can: {
+			deleteSelfAccount: configYaml.settings.can?.deleteSelfAccount || false
+		}
 	}
 })

@@ -4,3 +4,5 @@ export const AUTH_REFRESH_TOKEN_EXPIRED_OR_INVALID = 'Refresh token expired or i
 export const RESET_PASSWORD_LINK_SENT = 'Reset password link sent'
 export const PASSWORD_CHANGED_NOT_ALLOWED = 'Password changed not allowed'
 export const PASSWORD_CHANGED_SUCCESSFULLY = 'Password changed successfully'
+export const SELF_REMOVAL_IS_PROHIBITED =
+	'Self-removal is prohibited by the service settings. Contact your administrator'

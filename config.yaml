@@ -31,3 +31,7 @@ app:
 mail:
     host: smtp.yandex.ru
     port: 465
+
+settings:
+    can:
+        deleteSelfAccount: true
