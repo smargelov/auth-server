@@ -13,6 +13,12 @@ export class UserModel extends TimeStamps {
 	isActive: boolean
 
 	@prop()
+	emailConfirmationToken?: Nullable<string>
+
+	@prop()
+	resetPasswordToken?: Nullable<string>
+
+	@prop()
 	displayName?: string
 
 	@prop()

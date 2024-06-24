@@ -6,6 +6,7 @@ import {
 	Param,
 	Patch,
 	Post,
+	UseFilters,
 	UseGuards,
 	UseInterceptors,
 	UsePipes,
@@ -20,9 +21,11 @@ import { ROLE_NOT_FOUND } from './role.constants'
 import { RoleGuard } from '../common/guards/role.guard'
 import { ActiveGuard } from '../common/guards/active.guard'
 import { Module } from '../common/decorators/module.decorator'
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter'
 
 @UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(ROLE_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
+@UseFilters(new HttpExceptionFilter())
 @Controller('roles')
 @Module('role')
 @UseGuards(RoleGuard, ActiveGuard)
@@ -41,16 +44,16 @@ export class RoleController {
 
 	@Get(':id')
 	async getByCode(@Param('id') id: string) {
-		return await this.roleService.findById(id)
+		return this.roleService.findById(id)
 	}
 
 	@Delete(':id')
 	async delete(@Param('id') id: string) {
-		return await this.roleService.deleteById(id)
+		return this.roleService.deleteById(id)
 	}
 
 	@Patch(':id')
 	async update(@Param('id') id: string, @Body() dto: UpdateRoleDto) {
-		return await this.roleService.updateById(id, dto)
+		return this.roleService.updateById(id, dto)
 	}
 }

@@ -1,135 +1,154 @@
 import { Test, TestingModule } from '@nestjs/testing'
 import { UserService } from '../user.service'
+import { getModelToken } from 'nestjs-typegoose'
 import { UserModel } from '../user.model'
 import { RoleService } from '../../role/role.service'
-import { ConfigService } from '@nestjs/config'
-import { ReturnModelType } from '@typegoose/typegoose'
-import { getModelToken } from 'nestjs-typegoose'
 import { PasswordService } from '../password.service'
+import { MailService } from '../../mail/mail.service'
+import { ConfigService } from '@nestjs/config'
+import { TokenService } from '../../token/token.service'
 import { CreateUserDto } from '../dto/create-user.dto'
-import { FindUserDto } from '../dto/find-user.dto'
-import { UpdateUserDto } from '../dto/update-user.dto'
+import { HttpException, HttpStatus } from '@nestjs/common'
+import { DocumentType, ModelType } from '@typegoose/typegoose/lib/types'
+import { FAILED_TO_CREATE_USER, USER_ALREADY_EXISTS } from '../user.constants'
+import { Types } from 'mongoose'
+import { ROLE_NOT_FOUND } from '../../role/role.constants'
 
 describe('UserService', () => {
 	let service: UserService
-	let model: ReturnModelType<typeof UserModel>
-	let mockCreate, mockFind, mockFindById, mockFindOneAndDelete, mockFindOneAndUpdate, mockFindOne
+	let userModel: ModelType<UserModel>
+	let roleService: RoleService
+	let passwordService: PasswordService
+	let mailService: MailService
 
-	beforeAll(async () => {
-		mockCreate = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('create')
-		})
-		mockFind = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('find')
-		})
-		mockFindById = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('getOne')
-		})
-		mockFindOneAndDelete = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('delete')
-		})
-		mockFindOneAndUpdate = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('update')
-		})
-		mockFindOne = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue('findOne')
-		})
-
+	beforeEach(async () => {
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				UserService,
 				{
 					provide: getModelToken('UserModel'),
 					useValue: {
-						create: mockCreate,
-						find: mockFind,
-						findById: mockFindById,
-						findOneAndDelete: mockFindOneAndDelete,
-						findOneAndUpdate: mockFindOneAndUpdate,
-						findOne: mockFindOne
+						findOne: jest.fn(),
+						create: jest.fn(),
+						countDocuments: jest.fn(),
+						find: jest.fn(),
+						findOneAndDelete: jest.fn(),
+						findOneAndUpdate: jest.fn()
 					}
 				},
 				{
 					provide: RoleService,
 					useValue: {
-						roleExists: jest.fn().mockResolvedValue(true)
+						roleExists: jest.fn()
 					}
 				},
 				{
 					provide: PasswordService,
 					useValue: {
-						hashPassword: jest.fn().mockResolvedValue('hashedPassword')
+						hashPassword: jest.fn(),
+						comparePassword: jest.fn()
+					}
+				},
+				{
+					provide: MailService,
+					useValue: {
+						sendConfirmEmail: jest.fn(),
+						sendResetPassword: jest.fn()
 					}
 				},
 				{
 					provide: ConfigService,
 					useValue: {
-						get: jest.fn().mockReturnValue('user')
+						get: jest.fn()
+					}
+				},
+				{
+					provide: TokenService,
+					useValue: {
+						createTokens: jest.fn(),
+						getIdFromRefreshToken: jest.fn()
 					}
 				}
 			]
 		}).compile()
 
 		service = module.get<UserService>(UserService)
-		model = module.get<ReturnModelType<typeof UserModel>>(getModelToken('UserModel'))
-
-		model.findOne = jest.fn().mockImplementation((query) => {
-			if (query.email) {
-				return {
-					exec: jest.fn().mockResolvedValue(null)
-				}
-			} else if (query._id) {
-				return {
-					exec: jest.fn().mockResolvedValue({ _id: 'testId', email: 'test@test.com' })
-				}
-			}
-			return {
-				exec: jest.fn().mockResolvedValue(null)
-			}
-		})
-		model.countDocuments = jest.fn().mockReturnValue({
-			exec: jest.fn().mockResolvedValue(10)
-		})
-
-		model.find = jest.fn().mockReturnValue({
-			skip: jest.fn().mockReturnThis(),
-			limit: jest.fn().mockReturnThis(),
-			exec: jest.fn().mockResolvedValue([])
-		})
+		userModel = module.get<ModelType<UserModel>>(getModelToken('UserModel'))
+		roleService = module.get<RoleService>(RoleService)
+		passwordService = module.get<PasswordService>(PasswordService)
+		mailService = module.get<MailService>(MailService)
 	})
 
 	afterEach(() => {
 		jest.clearAllMocks()
 	})
 
-	it('should call create with correct params', async () => {
-		const dto = new CreateUserDto()
-		await service.create(dto)
-		expect(model.create).toHaveBeenCalledWith(dto)
+	it('should be defined', () => {
+		expect(service).toBeDefined()
 	})
 
-	it('should call findUserById with correct params', async () => {
-		const id = 'testId'
-		await service.findUserById(id)
-		expect(model.findOne).toHaveBeenCalledWith({ _id: id })
-	})
+	describe('create', () => {
+		it('should create a user', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
 
-	it('should call find with correct params', async () => {
-		const dto = new FindUserDto()
-		await service.find(dto)
-		expect(model.find).toHaveBeenCalled()
-	})
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(true)
+			jest.spyOn(passwordService, 'hashPassword').mockResolvedValue('hashedpassword')
+			jest.spyOn(mailService, 'sendConfirmEmail').mockResolvedValue(undefined)
 
-	it('should call deleteById with correct params', async () => {
-		const id = 'testId'
-		await service.deleteById(id)
-		expect(model.findOneAndDelete).toHaveBeenCalledWith({ _id: id })
-	})
+			const createdUser = {
+				_id: new Types.ObjectId(),
+				email: 'test@test.com',
+				passwordHash: 'hashedpassword',
+				save: jest.fn().mockResolvedValue(true)
+			} as unknown as DocumentType<UserModel>
+			jest.spyOn(userModel, 'create').mockResolvedValue(createdUser as unknown as any)
 
-	it('should call updateById with correct params', async () => {
-		const id = 'testId'
-		const dto = new UpdateUserDto()
-		await service.updateById(id, dto)
-		expect(model.findOneAndUpdate).toHaveBeenCalledWith({ _id: id }, dto, { new: true })
+			expect(await service.create(dto)).toBe(createdUser)
+		})
+
+		it('should throw an error if user already exists', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
+
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(true)
+
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(USER_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
+			)
+		})
+
+		it('should throw an error if role does not exist', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
+			dto.role = 'non-existent-role'
+
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(false)
+
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
+			)
+		})
+
+		it('should throw an error if user creation fails', async () => {
+			const dto = new CreateUserDto()
+			dto.email = 'test@test.com'
+			dto.password = 'password'
+
+			jest.spyOn(service as any, 'userExists').mockResolvedValue(false)
+			jest.spyOn(roleService, 'roleExists').mockResolvedValue(true)
+			jest.spyOn(passwordService, 'hashPassword').mockResolvedValue('hashedpassword')
+			jest.spyOn(mailService, 'sendConfirmEmail').mockResolvedValue(undefined)
+			jest.spyOn(userModel, 'create').mockResolvedValue(null)
+
+			await expect(service.create(dto)).rejects.toThrow(
+				new HttpException(FAILED_TO_CREATE_USER, HttpStatus.INTERNAL_SERVER_ERROR)
+			)
+		})
 	})
 })

@@ -1,65 +1,66 @@
 import {
 	Body,
 	Controller,
+	Delete,
 	HttpCode,
 	HttpStatus,
-	HttpException,
+	Patch,
 	Post,
 	Res,
+	UseFilters,
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
 import { Response } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
-import { AUTH_NO_REFRESH_TOKEN } from './auth.constants'
-import { ConfigService } from '@nestjs/config'
-import * as ms from 'ms'
+import { GetResetPasswordLinkDto } from './dto/get-reset-password-link.dto'
+import { RegisterDto } from './dto/register.dto'
+import { UpdateDto } from './dto/update.dto'
+import { DeleteDto } from './dto/delete.dto'
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter'
 
 @UsePipes(new ValidationPipe())
+@UseFilters(new HttpExceptionFilter())
 @Controller('auth')
 export class AuthController {
-	constructor(
-		private readonly authService: AuthService,
-		private readonly configService: ConfigService
-	) {}
-
-	private async setRefreshTokenCookie(response: Response, refreshToken: string) {
-		const refreshTokenExpiresIn = this.configService.get<string>('jwt.refreshTokenExpiresIn')
-		const maxAge = ms(refreshTokenExpiresIn)
-
-		response.cookie('refreshToken', refreshToken, {
-			httpOnly: true,
-			secure: process.env.NODE_ENV === 'production',
-			sameSite: 'strict',
-			maxAge
-		})
-	}
+	constructor(private readonly authService: AuthService) {}
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
 	async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
-		const tokens = await this.authService.login(dto)
-		if (tokens instanceof HttpException) {
-			throw tokens
-		}
-		await this.setRefreshTokenCookie(response, tokens.refreshToken)
-
-		return { accessToken: tokens.accessToken }
+		return this.authService.login(dto, response)
 	}
 
 	@Post('refresh')
 	@HttpCode(HttpStatus.OK)
 	async refresh(@Res({ passthrough: true }) response: Response) {
-		const refreshToken = response.req.cookies['refreshToken']
-		if (!refreshToken) {
-			throw new HttpException(AUTH_NO_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
-		}
-		const tokens = await this.authService.refresh(refreshToken)
-		if (tokens instanceof HttpException) {
-			throw tokens
-		}
-		await this.setRefreshTokenCookie(response, tokens.refreshToken)
-		return { accessToken: tokens.accessToken }
+		return this.authService.refresh(response)
+	}
+
+	@Post('get-reset-password-link')
+	@HttpCode(HttpStatus.OK)
+	async getResetPasswordLink(@Body() dto: GetResetPasswordLinkDto) {
+		return this.authService.getResetPasswordLink(dto.email)
+	}
+
+	@Patch('change-password')
+	async changePassword(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
+		return this.authService.changePassword(dto, response)
+	}
+
+	@Post('register')
+	async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
+		return this.authService.register(dto, response)
+	}
+
+	@Patch('update')
+	async update(@Body() dto: UpdateDto, @Res({ passthrough: true }) response: Response) {
+		return this.authService.update(dto, response)
+	}
+
+	@Delete('delete-account')
+	async delete(@Body() dto: DeleteDto, @Res({ passthrough: true }) response: Response) {
+		return this.authService.deleteAccount(dto, response)
 	}
 }

@@ -5,11 +5,13 @@ import { TypegooseModule } from 'nestjs-typegoose'
 import { RoleController } from './role.controller'
 import { JwtModule } from '@nestjs/jwt'
 import { ConfigModule } from '@nestjs/config'
+import { TokenModule } from '../token/token.module'
 
 @Module({
 	imports: [
 		JwtModule,
 		ConfigModule,
+		TokenModule,
 		TypegooseModule.forFeature([
 			{
 				typegooseClass: RoleModel,

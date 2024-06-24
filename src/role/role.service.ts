@@ -22,7 +22,7 @@ export class RoleService {
 		return !!role
 	}
 
-	async create(dto: CreateRoleDto): Promise<DocumentType<RoleModel> | HttpException> {
+	async create(dto: CreateRoleDto): Promise<DocumentType<RoleModel>> {
 		const roleExists = await this.roleExists(dto.code)
 		if (roleExists) {
 			throw new HttpException(ROLE_ALREADY_EXISTS, HttpStatus.BAD_REQUEST)
@@ -44,7 +44,7 @@ export class RoleService {
 		return this.roleModel.find().exec()
 	}
 
-	async findById(id: string): Promise<DocumentType<RoleModel> | HttpException> {
+	async findById(id: string): Promise<DocumentType<RoleModel>> {
 		const role = await this.roleModel.findById(id).exec()
 		if (!role) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -52,7 +52,7 @@ export class RoleService {
 		return role
 	}
 
-	async deleteById(id: string): Promise<{ message: string } | HttpException> {
+	async deleteById(id: string): Promise<{ message: string }> {
 		const candidate = await this.roleModel.findById(id).exec()
 		if (!candidate) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)
@@ -64,10 +64,7 @@ export class RoleService {
 		return { message: ROLE_DELETED_MESSAGE }
 	}
 
-	async updateById(
-		id: string,
-		dto: UpdateRoleDto
-	): Promise<DocumentType<RoleModel> | HttpException> {
+	async updateById(id: string, dto: UpdateRoleDto): Promise<DocumentType<RoleModel>> {
 		const candidate = await this.roleModel.findById(id).exec()
 		if (!candidate) {
 			throw new HttpException(ROLE_NOT_FOUND, HttpStatus.NOT_FOUND)

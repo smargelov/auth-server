@@ -7,7 +7,7 @@ export class UpdateUserDto extends UserDto {
 	@IsString()
 	@MinLength(8)
 	@Validate(PasswordValidation, [passwordRequirement])
-	password: string
+	password?: string
 
 	@IsOptional()
 	@IsString()

@@ -3,6 +3,12 @@ import { RoleController } from '../role.controller'
 import { RoleService } from '../role.service'
 import { CreateRoleDto } from '../dto/create-role.dto'
 import { UpdateRoleDto } from '../dto/update-role.dto'
+import { JwtService } from '@nestjs/jwt'
+import { RoleGuard } from '../../common/guards/role.guard'
+import { ActiveGuard } from '../../common/guards/active.guard'
+import { Reflector } from '@nestjs/core'
+import { ConfigService } from '@nestjs/config'
+import { TokenService } from '../../token/token.service'
 
 describe('RoleController', () => {
 	let controller: RoleController
@@ -21,7 +27,25 @@ describe('RoleController', () => {
 						deleteById: jest.fn().mockResolvedValue('deleteById'),
 						updateById: jest.fn().mockResolvedValue('updateById')
 					}
-				}
+				},
+				{
+					provide: JwtService,
+					useValue: {
+						verify: jest.fn().mockResolvedValue(true)
+					}
+				},
+				{
+					provide: TokenService,
+					useValue: {
+						createAccessToken: jest.fn(),
+						createRefreshToken: jest.fn(),
+						verifyToken: jest.fn()
+					}
+				},
+				RoleGuard,
+				ActiveGuard,
+				Reflector,
+				ConfigService
 			]
 		}).compile()
 

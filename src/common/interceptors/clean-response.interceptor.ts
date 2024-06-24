@@ -59,7 +59,14 @@ export class CleanResponseInterceptor<T extends object>
 	}
 
 	private clean(item: ExtendedType<T>): CleanResponse<ExtendedType<T>> | ExtendedType<T> {
-		const keysToRemove = ['_id', '__v', 'createdAt', 'updatedAt']
+		const keysToRemove = [
+			'_id',
+			'__v',
+			'createdAt',
+			'updatedAt',
+			'emailConfirmationToken',
+			'resetPasswordToken'
+		]
 
 		// Check if item is a Mongoose document
 		if (this.isMongooseDocument(item)) {
