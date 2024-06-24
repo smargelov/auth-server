@@ -8,6 +8,7 @@ import {
 	Patch,
 	Post,
 	Query,
+	UseFilters,
 	UseGuards,
 	UseInterceptors,
 	UsePipes,
@@ -27,10 +28,12 @@ import { USER_NOT_FOUND } from './user.constants'
 import { Module } from '../common/decorators/module.decorator'
 import { RoleGuard } from '../common/guards/role.guard'
 import { ActiveGuard } from '../common/guards/active.guard'
+import { HttpExceptionFilter } from '../common/filters/http-exception.filter'
 
 @UsePipes(new ValidationPipe(), new ValidateObjectIdPipe(USER_NOT_FOUND))
 @UseInterceptors(CleanResponseInterceptor)
 @UseInterceptors(HidePasswordInterceptor)
+@UseFilters(new HttpExceptionFilter())
 @Controller('users')
 @Module('user')
 @UseGuards(RoleGuard, ActiveGuard)
@@ -52,16 +55,16 @@ export class UserController {
 
 	@Get(':id')
 	async getOne(@Param('id') id: string) {
-		return await this.userService.findUserById(id)
+		return this.userService.findUserById(id)
 	}
 
 	@Delete(':id')
 	async delete(@Param('id') id: string) {
-		return await this.userService.deleteById(id)
+		return this.userService.deleteById(id)
 	}
 
 	@Patch(':id')
 	async update(@Param('id') id: string, @Body() dto: UpdateUserDto) {
-		return await this.userService.updateById(id, dto)
+		return this.userService.updateById(id, dto)
 	}
 }
