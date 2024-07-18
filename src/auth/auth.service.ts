@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Response } from 'express'
+import { Response, Request } from 'express'
 import { UserService } from '../user/user.service'
 import { TokenService } from '../token/token.service'
 import { CookieService } from '../cookie/cookie.service'
@@ -24,21 +24,32 @@ export class AuthService {
 		private readonly configService: ConfigService
 	) {}
 
-	async login(user: LoginDto, response: Response): Promise<{ accessToken: string }> {
+	async login(
+		user: LoginDto,
+		request: Request,
+		response: Response
+	): Promise<{
+		accessToken: string
+		refreshToken?: string
+	}> {
 		const validatedUser = await this.userService.validateUser(user.email, user.password)
 		if (validatedUser instanceof HttpException) {
 			this.cookieService.clearRefreshTokenCookie(response)
+			throw validatedUser
 		}
 		const tokens = await this.tokenService.createTokens(validatedUser)
-		return this.cookieService.tokensHandler(tokens, response)
+		return this.cookieService.tokensHandler(tokens, request, response)
 	}
 
-	async refresh(response: Response): Promise<{ accessToken: string }> {
-		const refreshToken = await this.cookieService.getRefreshTokenFromCookie(response)
+	async refresh(
+		request: Request,
+		response: Response
+	): Promise<{ accessToken: string; refreshToken?: string }> {
+		const refreshToken = this.cookieService.getRefreshTokenFromRequest(request)
 		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
 		const user = await this.userService.findUserById(id)
 		const tokens = await this.tokenService.createTokens(user)
-		return this.cookieService.tokensHandler(tokens, response)
+		return this.cookieService.tokensHandler(tokens, request, response)
 	}
 
 	async getResetPasswordLink(email: string): Promise<{ message: string }> {
@@ -51,18 +62,20 @@ export class AuthService {
 
 	async changePassword(
 		dto: LoginDto,
+		request: Request,
 		response: Response
 	): Promise<{
 		accessToken: string
+		refreshToken?: string
 		message: string
 	}> {
-		const cookieEmail = this.cookieService.getCanChangePasswordCookie(response)
+		const cookieEmail = this.cookieService.getCanChangePasswordCookie(request)
 		if (!cookieEmail || cookieEmail !== dto.email) {
 			throw new HttpException(PASSWORD_CHANGED_NOT_ALLOWED, HttpStatus.BAD_REQUEST)
 		}
 		const result = await this.userService.changePassword(dto)
 		const tokens = await this.tokenService.createTokens(result)
-		const answer = await this.cookieService.tokensHandler(tokens, response)
+		const answer = await this.cookieService.tokensHandler(tokens, request, response)
 		this.cookieService.clearCanChangePasswordCookie(response)
 		return {
 			...answer,
@@ -70,25 +83,43 @@ export class AuthService {
 		}
 	}
 
-	async register(dto: RegisterDto, response: Response): Promise<{ accessToken: string }> {
+	async register(
+		dto: RegisterDto,
+		request: Request,
+		response: Response
+	): Promise<{
+		accessToken: string
+		refreshToken?: string
+	}> {
 		const user = await this.userService.create(dto)
 		const tokens = await this.tokenService.createTokens(user)
-		return this.cookieService.tokensHandler(tokens, response)
+		return this.cookieService.tokensHandler(tokens, request, response)
 	}
 
-	async update(dto: UpdateDto, response: Response): Promise<{ accessToken: string }> {
-		const refreshToken = await this.cookieService.getRefreshTokenFromCookie(response)
+	async update(
+		dto: UpdateDto,
+		request: Request,
+		response: Response
+	): Promise<{
+		accessToken: string
+		refreshToken?: string
+	}> {
+		const refreshToken = this.cookieService.getRefreshTokenFromRequest(request)
 		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
 		const tokens = await this.userService.authUpdate(id, dto)
-		return this.cookieService.tokensHandler(tokens, response)
+		return this.cookieService.tokensHandler(tokens, request, response)
 	}
 
-	async deleteAccount(dto: DeleteDto, response: Response): Promise<{ message: string }> {
+	async deleteAccount(
+		dto: DeleteDto,
+		request: Request,
+		response: Response
+	): Promise<{ message: string }> {
 		if (!this.configService.get('settings.can.deleteSelfAccount')) {
 			throw new HttpException(SELF_REMOVAL_IS_PROHIBITED, HttpStatus.FORBIDDEN)
 		}
 		this.cookieService.clearRefreshTokenCookie(response)
-		const refreshToken = await this.cookieService.getRefreshTokenFromCookie(response)
+		const refreshToken = this.cookieService.getRefreshTokenFromRequest(request)
 		const id = this.tokenService.getIdFromRefreshToken(refreshToken)
 		return this.userService.authDelete(id, dto)
 	}

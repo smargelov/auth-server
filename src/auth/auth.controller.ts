@@ -7,11 +7,12 @@ import {
 	Patch,
 	Post,
 	Res,
+	Req,
 	UseFilters,
 	UsePipes,
 	ValidationPipe
 } from '@nestjs/common'
-import { Response } from 'express'
+import { Response, Request } from 'express'
 import { AuthService } from './auth.service'
 import { LoginDto } from './dto/login.dto'
 import { GetResetPasswordLinkDto } from './dto/get-reset-password-link.dto'
@@ -28,14 +29,18 @@ export class AuthController {
 
 	@Post('login')
 	@HttpCode(HttpStatus.OK)
-	async login(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
-		return this.authService.login(dto, response)
+	async login(
+		@Body() dto: LoginDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response
+	) {
+		return this.authService.login(dto, request, response)
 	}
 
 	@Post('refresh')
 	@HttpCode(HttpStatus.OK)
-	async refresh(@Res({ passthrough: true }) response: Response) {
-		return this.authService.refresh(response)
+	async refresh(@Req() request: Request, @Res({ passthrough: true }) response: Response) {
+		return this.authService.refresh(request, response)
 	}
 
 	@Post('get-reset-password-link')
@@ -45,22 +50,38 @@ export class AuthController {
 	}
 
 	@Patch('change-password')
-	async changePassword(@Body() dto: LoginDto, @Res({ passthrough: true }) response: Response) {
-		return this.authService.changePassword(dto, response)
+	async changePassword(
+		@Body() dto: LoginDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response
+	) {
+		return this.authService.changePassword(dto, request, response)
 	}
 
 	@Post('register')
-	async register(@Body() dto: RegisterDto, @Res({ passthrough: true }) response: Response) {
-		return this.authService.register(dto, response)
+	async register(
+		@Body() dto: RegisterDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response
+	) {
+		return this.authService.register(dto, request, response)
 	}
 
 	@Patch('update')
-	async update(@Body() dto: UpdateDto, @Res({ passthrough: true }) response: Response) {
-		return this.authService.update(dto, response)
+	async update(
+		@Body() dto: UpdateDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response
+	) {
+		return this.authService.update(dto, request, response)
 	}
 
 	@Delete('delete-account')
-	async delete(@Body() dto: DeleteDto, @Res({ passthrough: true }) response: Response) {
-		return this.authService.deleteAccount(dto, response)
+	async delete(
+		@Body() dto: DeleteDto,
+		@Req() request: Request,
+		@Res({ passthrough: true }) response: Response
+	) {
+		return this.authService.deleteAccount(dto, request, response)
 	}
 }

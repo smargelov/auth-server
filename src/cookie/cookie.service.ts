@@ -1,6 +1,6 @@
 import { HttpException, HttpStatus, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
-import { Response } from 'express'
+import { Response, Request } from 'express'
 import * as ms from 'ms'
 import { AUTH_NO_REFRESH_TOKEN } from '../auth/auth.constants'
 import { TokensResponse } from '../auth/responses/tokens.response'
@@ -9,16 +9,16 @@ import { TokensResponse } from '../auth/responses/tokens.response'
 export class CookieService {
 	constructor(private readonly configService: ConfigService) {}
 
-	private getCookieValueByName(response: Response, name: string): string {
-		return response.req.cookies[name]
+	private getCookieValueByName(request: Request, name: string): string {
+		return request.cookies[name]
 	}
 
 	private clearCookieValueByName(response: Response, name: string): void {
 		response.clearCookie(name)
 	}
 
-	async getRefreshTokenFromCookie(response: Response) {
-		const refreshToken = this.getCookieValueByName(response, 'refreshToken')
+	getRefreshTokenFromRequest(request: Request): string {
+		const refreshToken = request.cookies['refreshToken'] || request.headers['x-refresh-token']
 		if (!refreshToken) {
 			throw new HttpException(AUTH_NO_REFRESH_TOKEN, HttpStatus.UNAUTHORIZED)
 		}
@@ -52,19 +52,37 @@ export class CookieService {
 		this.clearCookieValueByName(response, 'refreshToken')
 	}
 
-	async tokensHandler(tokens: TokensResponse | HttpException, response: Response) {
+	async tokensHandler(
+		tokens: TokensResponse | HttpException,
+		request: Request,
+		response: Response
+	) {
 		if (tokens instanceof HttpException) {
 			throw tokens
 		}
+
 		await this.setRefreshTokenCookie(response, tokens.refreshToken)
-		return { accessToken: tokens.accessToken }
+
+		const isUsingCookies = this.isUsingCookies(request)
+		if (isUsingCookies) {
+			return { accessToken: tokens.accessToken }
+		} else {
+			return {
+				accessToken: tokens.accessToken,
+				refreshToken: tokens.refreshToken
+			}
+		}
 	}
 
-	getCanChangePasswordCookie(response: Response): string {
-		return this.getCookieValueByName(response, 'canChangePasswordForEmail')
+	getCanChangePasswordCookie(request: Request): string {
+		return this.getCookieValueByName(request, 'canChangePasswordForEmail')
 	}
 
 	clearCanChangePasswordCookie(response: Response): void {
 		this.clearCookieValueByName(response, 'canChangePasswordForEmail')
+	}
+
+	private isUsingCookies(request: Request): boolean {
+		return !!request.cookies && Object.keys(request.cookies).length > 0
 	}
 }
